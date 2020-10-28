@@ -8,18 +8,18 @@ from math import sqrt
 #random.seed(99)
 
 # Initialize pygame.
-pg.init()
+#pg.init()
 
 # Get the current path of the python file. Used to load a font resource.
 ABS_PATH = path.dirname(path.realpath(__file__))
 
 # Window width and height
-WINDOW_WIDTH = 600
+WINDOW_WIDTH = 500
 WINDOW_HEIGHT = 700
 
 # How many tiles should the grid have horizontally and vertically?
 # CURRENTLY ALL GRIDS MUST BE SQUARE
-GAME_GRID_WIDTH = 10
+GAME_GRID_WIDTH = 50
 GAME_GRID_HEIGHT = GAME_GRID_WIDTH
 
 # Total number of spaces 
@@ -81,6 +81,10 @@ def rand_color(min_brightness=50, max_brightness=150):
 
     return pg.Color(red,green,blue)
 
+def fast_dist(x1,y1,x2,y2):
+    return np.linalg.norm(np.array((x1,y1))-np.array((x2,y2)))
+
+
 # A class that describes a occupied tile on the grid.
 class GridSpace:
     def __init__(self,x,y):
@@ -125,108 +129,6 @@ class GameState():
         player.score = self.player_score
         return player
 
-class GameManager():
-    """ A class that controls the logic and graphics of the game. """
-    def __init__(self,width,height):
-        self.game_grid = GameGrid(height, width)
-        self.round = 0
-        self.paused = 0
-        self.game_states = []
-        self.round_scores = []
-
-    def logicTick(self):
-        """ Proceed one tick in the game logic. """
-
-        # Add food if there is none on the grid
-        if self.game_grid.occupied_spaces == []:
-            for i in range(MAX_NUM_FOOD_ON_GRID):
-                self.game_grid.addFood()
-
-        #self.game_grid.calcSmellMatrix()
-        self.game_grid.calcPlayerSense()
-        movement = smart_mouse(self.game_grid.player.smell_matrix)
-        self.game_grid.movePlayer(movement)
-        self.checkEndStates()
-        self.saveGameState()
-
-    def draw(self, game_window):
-        """ Draw the current gamestate to the screen """
-        if self.paused:
-            game_window.fill(PAUSED_BACKGROUND_COLOR)
-        else:
-            game_window.fill(BACKGROUND_COLOR)
-
-        self.game_grid.draw(game_window)
-        labels_y_start = self.game_grid.total_grid_x + self.game_grid.grid_padding
-        game_window.blit(font.render(f"SCORE:      {self.game_grid.player.score}", 0, (255, 0, 0)), (10, labels_y_start))
-        game_window.blit(font.render(f"ENERGY:     {self.game_grid.player.energy}", 0, (255, 0, 0)), (10, labels_y_start+50))
-        game_window.blit(font.render(f"FOOD_FOUND: {self.game_grid.player.food_eaten}", 0, (255, 0, 0)), (10, labels_y_start+100))        
-        game_window.blit(font.render(f"Round: {self.round}", 0, (255, 0, 0)), (10, 0))        
-
-        pg.display.flip()        
-
-    def checkEndStates(self):
-        """
-        Check if something happened to end the round.
-        If statements are separated in case you wanted to modify the behavior.
-        """
-        # If the player eats enough food to end the round
-        if self.game_grid.player.food_eaten >= FOOD_PER_ROUND:
-            self.endRound()
-            return
-        # If the player died (Starved)
-        if not self.game_grid.player.alive:
-            if DEATH_PENALTY:
-                self.game_grid.player.score = 0
-            self.endRound()
-            return
-
-    def endRound(self):
-        """ End the round and start a new one"""
-        self.round_scores.append(self.game_grid.player.score)
-        self.game_grid.reset()
-        self.round += 1
-        # DEBUG
-        #   self.printScoreStats()
-        # /DEBUG
-        self.reset()
-
-    def printScoreStats(self):
-        """ Print score related statistics. """
-        print(f"There have been {len(self.round_scores)} round(s).")
-        print(f"The highest possible score is {MAX_ENERGY*FOOD_PER_ROUND}")
-        print(f"The high score of all rounds is {max(self.round_scores)}")
-        print(f"The worst of all rounds is {min(self.round_scores)}")
-        print(f"The average of all rounds is {sum(self.round_scores)/len(self.round_scores)}")
-        print()
-
-    
-    def reset(self):
-        """ Reset self to prepare for the next round """
-        self.game_states = []
-
-    def saveGameState(self):
-        """ Save the current game state, and add it to the game state array. """
-        if len(self.game_states) >= MAX_SAVED_GAME_STATES:
-            self.game_states = self.game_states[1:]
-        self.game_states.append(GameState(self.game_grid))
-
-    # Restore a game state from a GameState object
-    def restoreGameState(self,game_state):
-        self.game_grid.reset()
-        self.game_grid.player = game_state.restorePlayer()
-        for food in game_state.foods_loc:
-            self.game_grid.addFood(food[0], food[1])
-
-    # Rewind a given number of game states.
-    def rewindGameState(self,num_to_rewind):
-        if len(self.game_states) <= 1:
-            return
-        if num_to_rewind >= len(self.game_states):
-            num_to_rewind = len(self.game_states) - 1
-
-        self.game_states = self.game_states[:-num_to_rewind]
-        self.restoreGameState(self.game_states[-1])
 
 # class SensoryMatrix:
 class GameObject:
@@ -294,22 +196,112 @@ def dir2offset(direction):
 
 
 class Agent(GameObject):
-    def __init__(self,x=None,y=None,init_energy=None):
-        self.stats = AgentStats()
-
-# class Plant(GameObject):
-
-class AgentStats:
-    def __init__(self):
-        self.max_energy = MAX_ENERGY
-        self.energy = self.max_energy
-        self.score = 0
-        self.speed = 1
+    def __init__(self,x=None,y=None, init_energy=None):
+        self.char = AgentChar()
+        self.stats = AgentStats(self.char)
+        self.sense = AgentSense(self.char.perception)
         
+
+class Plant(GameObject):
+    def __init__(self,x=None, y=None, init_energy=None):
+        # Probability of growth per round
+        self.growth_rate = 0.9
+        # At full growth, what chance does the plant have of seeding
+        self.seed_chance = 0.3
+        # How far away can the plant seed?
+        self.seed_range = 3
+        # Number of growth stages
+        self.num_stages = 5
+        self.max_energy = 100
+        self.energy = 0
+        self.energy_steps = int(self.max_energy / self.num_stages)
+        self.stage = 1
+        self.raw_img_path = path.join(ABS_PATH, "art_assets","plant_growth","plant")
+        self.calc_img_path()
+
+    def draw(self):
+        return
+
+    def calc_img_path(self):
+        img_path = f"{self.raw_img_path}{self.stage}.png"
+        if path.exists(img_path):
+            self.img_path = img_path
+        else:
+            print(f"ERROR: FILE NOT FOUND ({img_path})")
+
+    def tick(self):
+        if self.stage >= self.num_stages:
+            return
+        elif random.random() < self.growth_rate:
+            self.grow()
+    
+        self.stage = self.energy2stage()
+        self.calc_img_path()
+    
+    def seed(self):
+        self.stage -= 1
+        return
+    
+    def grow(self):
+        self.energy += self.energy_steps
+        if self.energy > self.max_energy:
+            self.energy = self.max_energy
+
+    # Calculate stage based on energy level:
+    def energy2stage(self):
+        for i in range(self.num_stages):
+            if self.energy <= i * self.energy_steps:
+                return i
+        return self.num_stages
+
+# PLANT TEST
+# test_plant = Plant()
+# for i in range(10):
+#     test_plant.tick()
+#     print(test_plant.energy,test_plant.img_path)
+# exit()
+# /PLANT TEST
+
+
+# Agent Statistics, mutable durring lifetime
+class AgentStats:
+    def __init__(self,characteristics):
+        self.energy = characteristics.max_energy
+        self.score = 0
+        self.alive = True
+
+# Agent Characteristics
+class AgentChar:
+    def __init__(self):
+        self.speed = 1
+        self.max_health = 5
+        self.defense = 5
+        self.attack_power = 5
+        self.perception = 1
+        self.max_energy = MAX_ENERGY
+
+class AgentSense:
+    def __init__(self,perception):
+        self.perception = perception
+        if perception == 1:
+            self.sight_range = 3
+        elif perception == 2:
+            self.sight_range = 5
+        elif perception == 3:
+            self.sight_range = 7
+
+        self.local_sound = np.zeros((3,3))
+        self.elevation_sight = np.zeros((self.sight_range,self.sight_range))
+        self.plant_sight = np.zeros((self.sight_range,self.sight_range))
+        self.danger_sight = np.zeros((self.sight_range,self.sight_range))
+        self.friend_sight = np.zeros((self.sight_range,self.sight_range))
+        # P1-> (3 * 3) + (3 * 3) * 4 = 45 sensory neurons
+        # P2-> (3 * 3) + (5 * 5) * 4 = 109 sensory neurons
+        # P3-> (3 * 3) + (7 * 7) * 4 = 205 sensory neurons
+
 # A class managing player actions
 class Player:
     def __init__(self,x=0,y=0):
-        self.stats = AgentStats()
         self.tile = GridSpace(x,y)
         self.tile.setPlayer()
         self.food_eaten = 0
@@ -368,9 +360,190 @@ class Player:
     def printStats(self):
         print(f"FOOD EATEN: {self.food_eaten}")
 
-def fast_dist(x1,y1,x2,y2):
-    return np.linalg.norm(np.array((x1,y1))-np.array((x2,y2)))
 
+class Grid:
+    def __init__(self,width,height):
+        self.width = width
+        self.height = height
+        self.padding = 2
+        self.square_size = int(WINDOW_WIDTH/GAME_GRID_WIDTH*0.8)
+        self.grid_padding = self.calcGridPadding()
+        self.default_color = pg.Color("#FFFFFF")
+        self.line_color = pg.Color("#010101")
+
+    # Calculate the amount of padding needed for the current grid.
+    def calcGridPadding(self):
+        self.total_grid_x = self.width*self.padding + self.width*self.square_size
+        self.grid_padding = int((WINDOW_WIDTH - self.total_grid_x)/2)
+        return self.grid_padding
+
+    # Calculate a XY location for a given tile location
+    def calcTileLocation(self,tile):
+        x = tile.x * self.padding + tile.x * self.square_size + self.grid_padding
+        y = tile.y * self.padding + tile.y * self.square_size + self.grid_padding
+        x += self.padding*2
+        y += self.padding*2
+        return x, y
+   
+    # Get a tile by it's coordinates. If no tile matches, return None
+    def getTile(self,x,y):
+        if not self.checkValidTile(x,y):
+            return None
+        for tile in self.occupied_spaces:
+            if tile.x == x and tile.y == y:
+                return tile
+        return None
+
+    # Draw the grid without anything else.
+    def draw(self,surface):
+        total_x = self.width*self.padding + self.width*self.square_size
+        total_y = self.height*self.padding + self.height*self.square_size
+        grid_pos_x = self.padding + self.grid_padding
+        for i in range(self.height + 1):
+            pg.draw.rect(
+                        surface,
+                        self.line_color,
+                        pg.Rect(
+                            grid_pos_x,
+                            self.padding + self.grid_padding, 
+                            self.padding, 
+                            total_y)
+                    )
+            grid_pos_x += self.square_size + self.padding
+
+        grid_pos_y = self.padding + self.grid_padding
+
+        for i in range(self.width + 1):
+            pg.draw.rect(
+                        surface,
+                        self.line_color,
+                        pg.Rect(
+                            self.padding + self.grid_padding,
+                            grid_pos_y, 
+                            total_x,
+                            self.padding
+                            )
+                    )
+            grid_pos_y += self.square_size + self.padding
+
+
+
+
+class GameManager_old():
+    """ A class that controls the logic and graphics of the game. """
+    def __init__(self,width,height):
+        self.game_grid = GameGrid(height, width)
+        self.round = 0
+        self.paused = 0
+        self.game_states = []
+        self.round_scores = []
+
+    def logicTick(self):
+        """ Proceed one tick in the game logic. """
+
+        # Add food if there is none on the grid
+        if self.game_grid.occupied_spaces == []:
+            for i in range(MAX_NUM_FOOD_ON_GRID):
+                self.game_grid.addFood()
+
+        #self.game_grid.calcSmellMatrix()
+        self.game_grid.calcPlayerSense()
+        movement = smart_mouse(self.game_grid.player.smell_matrix)
+        self.game_grid.movePlayer(movement)
+        self.checkEndStates()
+        self.saveGameState()
+
+    def draw(self, game_window):
+        """ Draw the current gamestate to the screen """
+        if self.paused:
+            game_window.fill(PAUSED_BACKGROUND_COLOR)
+        else:
+            game_window.fill(BACKGROUND_COLOR)
+
+        self.game_grid.draw(game_window)
+        labels_y_start = self.game_grid.total_grid_x + self.game_grid.grid_padding
+        game_window.blit(font.render(f"SCORE:      {self.game_grid.player.score}", 0, (255, 0, 0)), (10, labels_y_start))
+        game_window.blit(font.render(f"ENERGY:     {self.game_grid.player.energy}", 0, (255, 0, 0)), (10, labels_y_start+50))
+        game_window.blit(font.render(f"FOOD_FOUND: {self.game_grid.player.food_eaten}", 0, (255, 0, 0)), (10, labels_y_start+100))        
+        game_window.blit(font.render(f"Round: {self.round}", 0, (255, 0, 0)), (10, 0))        
+
+        pg.display.flip()
+
+    def checkEndStates(self):
+        """
+        Check if something happened to end the round.
+        If statements are separated in case you wanted to modify the behavior.
+        """
+        # If the player eats enough food to end the round
+        if self.game_grid.player.food_eaten >= FOOD_PER_ROUND:
+            self.endRound()
+            return
+        # If the player died (Starved)
+        if not self.game_grid.player.alive:
+            if DEATH_PENALTY:
+                self.game_grid.player.score = 0
+            self.endRound()
+            return
+
+    def endRound(self):
+        """ End the round and start a new one"""
+        self.round_scores.append(self.game_grid.player.score)
+        self.game_grid.reset()
+        self.round += 1
+        # DEBUG
+        #   self.printScoreStats()
+        # /DEBUG
+        self.reset()
+
+    def printScoreStats(self):
+        """ Print score related statistics. """
+        print(f"There have been {len(self.round_scores)} round(s).")
+        print(f"The highest possible score is {MAX_ENERGY*FOOD_PER_ROUND}")
+        print(f"The high score of all rounds is {max(self.round_scores)}")
+        print(f"The worst of all rounds is {min(self.round_scores)}")
+        print(f"The average of all rounds is {sum(self.round_scores)/len(self.round_scores)}")
+        print()
+
+    
+    def reset(self):
+        """ Reset self to prepare for the next round """
+        self.game_states = []
+
+    def saveGameState(self):
+        """ Save the current game state, and add it to the game state array. """
+        if len(self.game_states) >= MAX_SAVED_GAME_STATES:
+            self.game_states = self.game_states[1:]
+        self.game_states.append(GameState(self.game_grid))
+
+    # Restore a game state from a GameState object
+    def restoreGameState(self,game_state):
+        self.game_grid.reset()
+        self.game_grid.player = game_state.restorePlayer()
+        for food in game_state.foods_loc:
+            self.game_grid.addFood(food[0], food[1])
+
+    # Rewind a given number of game states.
+    def rewindGameState(self,num_to_rewind):
+        if len(self.game_states) <= 1:
+            return
+        if num_to_rewind >= len(self.game_states):
+            num_to_rewind = len(self.game_states) - 1
+
+        self.game_states = self.game_states[:-num_to_rewind]
+        self.restoreGameState(self.game_states[-1])
+
+class GameManager:
+    """ A class that controls the logic and graphics of the game. """
+    def __init__(self,width,height):
+        self.grid = Grid(height, width)
+
+    def draw(self,game_window):
+        self.grid.draw(game_window)
+
+    def logicTick(self):
+        return
+
+    
 # Primary game grid actions
 class GameGrid:
     def __init__(self,width,height):
@@ -531,7 +704,6 @@ class GameGrid:
     # Get a random valid Y coordinate.
     def randGridY(self):
         return random.randint(0,GAME_GRID_HEIGHT-1)
-
 
     # Get a random valid XY coordinate set.
     def randGridSpace(self):
@@ -705,61 +877,3 @@ def smart_mouse(scent_matrix):
     # return movement_array.index(max(movement_array))
 
 
-# initialize the game manager.
-gm = GameManager(GAME_GRID_WIDTH, GAME_GRID_HEIGHT)
-
-game_window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-pg.display.set_caption('ASSIGNMENT 1')
-game_window.fill(BACKGROUND_COLOR)
-
-#font = pg.font.Font(path.join(ABS_PATH,"Retron2000.ttf"), 30)
-font = pg.font.SysFont("monospace", 30)
-
-run_game_loop = True
-
-
-frame_count = 0
-
-clock = pg.time.Clock()
-
-while run_game_loop:
-
-    # Check for key presses
-    # CONTROLS:
-    # p -> Pause/un-pause
-    # Right Arrow -> If paused, progress one tick
-    # Left Arrow -> If paused, rewind one tick
-    # Esc -> Exit game
-    # 0 -> Toggle scent_stacking (Not useful)
-    for event in pg.event.get():
-        if event.type == pg.KEYDOWN:
-            if event.key == pg.K_ESCAPE:
-                run_game_loop = False                    
-            if event.key == pg.K_RIGHT:
-                if gm.paused:
-                    gm.logicTick()
-                    gm.draw(game_window)
-            if event.key == pg.K_LEFT:
-                if gm.paused:
-                    gm.rewindGameState(1)
-                    gm.draw(game_window)
-            if event.key == pg.K_p:
-                gm.paused = not gm.paused
-                gm.draw(game_window)
-            if event.key == pg.K_0:
-                SCENT_STACKING = not SCENT_STACKING
-                gm.game_grid.calcSmellMatrix()
-        # Check to see if the user has requested that the game end.
-        if event.type == pg.QUIT:
-            run_game_loop = False
-
-    if not gm.paused:
-        for i in range(SKIP_FRAMES + 1):
-            gm.logicTick()
-
-        gm.draw(game_window)
-        delta_time = clock.tick(FRAMES_PER_SECOND)
-
-    
-pg.display.quit()
-pg.quit()
