@@ -2,6 +2,8 @@ import pygame as pg
 import numpy as np
 import random
 from os import path
+from PIL import Image, ImageFilter
+
 #import time
 from enum import Enum
 from math import sqrt
@@ -365,12 +367,24 @@ class Grid:
     def __init__(self,width,height):
         self.width = width
         self.height = height
-        self.padding = 2
+        self.padding = 1
         self.square_size = int(WINDOW_WIDTH/GAME_GRID_WIDTH*0.8)
         self.grid_padding = self.calcGridPadding()
+        self.calcGridSize()
+
         self.default_color = pg.Color("#FFFFFF")
         self.line_color = pg.Color("#010101")
+        self.calcHeightMap()
 
+    def calcHeightMap(self):
+        self.elevation_map = np.random.randint(0,high=250, size=(GAME_GRID_WIDTH,GAME_GRID_HEIGHT))
+        img_path = path.join(ABS_PATH,"height.png")
+        img = Image.fromarray(self.elevation_map).convert('L').filter(ImageFilter.GaussianBlur(1))
+        img.save(img_path)
+        self.elevation_map = np.asarray(Image.open(img_path))
+        elevation_map_img = pg.image.load(img_path)
+        self.elevation_map_img = pg.transform.scale(elevation_map_img,(self.total_x,self.total_y))
+    
     # Calculate the amount of padding needed for the current grid.
     def calcGridPadding(self):
         self.total_grid_x = self.width*self.padding + self.width*self.square_size
@@ -394,10 +408,12 @@ class Grid:
                 return tile
         return None
 
+    def calcGridSize(self):
+        self.total_x = self.width * self.padding + self.width * self.square_size
+        self.total_y = self.height * self.padding + self.height * self.square_size
+
     # Draw the grid without anything else.
-    def draw(self,surface):
-        total_x = self.width*self.padding + self.width*self.square_size
-        total_y = self.height*self.padding + self.height*self.square_size
+    def drawGrid(self,surface):
         grid_pos_x = self.padding + self.grid_padding
         for i in range(self.height + 1):
             pg.draw.rect(
@@ -407,7 +423,7 @@ class Grid:
                             grid_pos_x,
                             self.padding + self.grid_padding, 
                             self.padding, 
-                            total_y)
+                            self.total_y)
                     )
             grid_pos_x += self.square_size + self.padding
 
@@ -420,13 +436,21 @@ class Grid:
                         pg.Rect(
                             self.padding + self.grid_padding,
                             grid_pos_y, 
-                            total_x,
+                            self.total_x,
                             self.padding
                             )
                     )
             grid_pos_y += self.square_size + self.padding
 
+    def draw(self, surface):
+        x = self.padding + self.grid_padding
+        y = self.padding + self.grid_padding
+        
+        rect = self.elevation_map_img.get_rect().move((x,y))
+        surface.blit(self.elevation_map_img, rect)
 
+
+        self.drawGrid(surface)
 
 
 class GameManager_old():
