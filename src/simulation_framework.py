@@ -206,23 +206,33 @@ class Agent(GameObject):
 
 class Plant(GameObject):
     def __init__(self,x=None, y=None, init_energy=None):
+        super().__init__(x,y)
         # Probability of growth per round
         self.growth_rate = 0.9
         # At full growth, what chance does the plant have of seeding
-        self.seed_chance = 0.3
+        self.seed_chance = 0.1
         # How far away can the plant seed?
         self.seed_range = 3
         # Number of growth stages
+        self.seeded = 2
         self.num_stages = 5
         self.max_energy = 100
-        self.energy = 0
+        self.energy = 10
         self.energy_steps = int(self.max_energy / self.num_stages)
         self.stage = 1
         self.raw_img_path = path.join(ABS_PATH, "art_assets","plant_growth","plant")
         self.calc_img_path()
+        self.loadImg()
+        self.seeding = 0
+        self.alive = True
 
-    def draw(self):
-        return
+    def loadImg(self):
+        self.img = pg.image.load(self.img_path)
+        self.img = pg.transform.scale(self.img,(SQUARE_SIZE,SQUARE_SIZE))
+        self.img_rect = self.img.get_rect()
+
+    def draw(self,x,y,surface):
+        surface.blit(self.img, self.img_rect.move(x,y))
 
     def calc_img_path(self):
         img_path = f"{self.raw_img_path}{self.stage}.png"
@@ -233,28 +243,35 @@ class Plant(GameObject):
 
     def tick(self):
         if self.stage >= self.num_stages:
+            if random.random() < self.seed_chance:
+                if not self.seeding:
+                    self.seed()
             return
         elif random.random() < self.growth_rate:
             self.grow()
     
-        self.stage = self.energy2stage()
-        self.calc_img_path()
-    
+        new_stage = self.energy2stage()
+        if new_stage != self.stage:
+            self.stage = new_stage
+            self.calc_img_path()
+            self.loadImg()
+
+        if self.energy < 0:
+            self.alive = 0
     def seed(self):
-        self.stage -= 1
-        return
+        self.seeding = 1
     
     def grow(self):
-        self.energy += self.energy_steps
+        self.energy += 1
         if self.energy > self.max_energy:
             self.energy = self.max_energy
 
     # Calculate stage based on energy level:
     def energy2stage(self):
-        for i in range(self.num_stages):
+        for i in range(self.num_stages+1):
             if self.energy <= i * self.energy_steps:
                 return i
-        return self.num_stages
+        return i
 
 # PLANT TEST
 # test_plant = Plant()
@@ -372,9 +389,36 @@ class Grid:
         self.grid_padding = self.calcGridPadding()
         self.calcGridSize()
 
+        self.occupied_grid = np.zeros((GAME_GRID_WIDTH,GAME_GRID_HEIGHT))
+        
         self.default_color = pg.Color("#FFFFFF")
         self.line_color = pg.Color("#010101")
         self.calcHeightMap()
+
+    def calcRandNearby(self,x,y,rand_range):
+        rand_range = rand_range * 2
+        found = False
+        empty_range = self.checkEmptyInRange(x,y,rand_range)
+        if empty_range == []:
+            return None, None
+        tuple = random.choice(empty_range)
+        return tuple[0], tuple[1]
+
+    def checkEmptyInRange(self,x,y,rand_range):
+        empties = []
+        for i in range(-rand_range, rand_range + 1):
+            for j in range(-rand_range, rand_range + 1):
+                if self.checkValidTile(x+i,y+j):
+                    if self.occupied_grid[x+i][y+j] == 0:
+                        empties.append([x+i,y+j])
+        return empties
+
+    # Check to make sure a given XY set is 
+    def checkValidTile(self,x,y):
+        if x >= 0 and y >= 0:
+            if x < GAME_GRID_WIDTH and y < GAME_GRID_HEIGHT:
+                return True
+        return False
 
     def calcHeightMap(self):
         self.elevation_map = np.random.randint(0,high=250, size=(GAME_GRID_WIDTH,GAME_GRID_HEIGHT))
@@ -384,7 +428,47 @@ class Grid:
         self.elevation_map = np.asarray(Image.open(img_path))
         elevation_map_img = pg.image.load(img_path)
         self.elevation_map_img = pg.transform.scale(elevation_map_img,(self.total_x,self.total_y))
-    
+
+    # Get a random valid X coordinate.
+    def randGridX(self):
+        return random.randint(0,GAME_GRID_WIDTH-1)
+
+    # Get a random valid Y coordinate.
+    def randGridY(self):
+        return random.randint(0,GAME_GRID_HEIGHT-1)
+
+    # Get a random valid XY coordinate set.
+    def randGridSpace(self):
+        return self.randGridX(), self.randGridY()
+
+    # Efficiently get a random XY pair that isn't already used. 
+    def randEmptySpace(self):
+        if np.count_nonzero(self.occupied_grid) < NUM_SPACES*0.5:
+            found = False
+            while found == False:
+                x,y = self.randGridSpace()
+                if self.occupied_grid[x][y] == 0:
+                    found = True
+            return x,y 
+        else:
+            empty_left = NUM_SPACES-len(np.count_nonzero(self.occupied_grid))
+            choice = random.randint(0,empty_left)
+            count = 0
+            for i in range(self.height):
+                for j in range(self.width):
+                    if self.occupied_grid[i][j] == 0:
+                        if count >= choice:
+                            return i,j
+                        count += 1
+            for i in range(self.height):
+                for j in range(self.width):
+                    if self.occupied_grid[i][j] == 0:
+                        if count >= choice:
+                            return i,j
+                        count += 1
+            print("ERROR: No spaces available")
+            exit(9)
+
     # Calculate the amount of padding needed for the current grid.
     def calcGridPadding(self):
         self.total_grid_x = self.width*self.padding + self.width*self.square_size
@@ -398,7 +482,15 @@ class Grid:
         x += self.padding*2
         y += self.padding*2
         return x, y
-   
+    
+    def calcXYLocation(self,x,y):
+        world_x = x * self.padding + x * self.square_size + self.grid_padding
+        world_y = y * self.padding + y * self.square_size + self.grid_padding
+        world_x += self.padding*2
+        world_y += self.padding*2
+        return world_x, world_y
+        
+
     # Get a tile by it's coordinates. If no tile matches, return None
     def getTile(self,x,y):
         if not self.checkValidTile(x,y):
@@ -560,14 +652,39 @@ class GameManager:
     """ A class that controls the logic and graphics of the game. """
     def __init__(self,width,height):
         self.grid = Grid(height, width)
+        self.agents = []
+        self.plants = []
+        self.addPlant()
 
     def draw(self,game_window):
         self.grid.draw(game_window)
+        # Draw plants
+        for plant in self.plants:
+            world_x, world_y = self.grid.calcXYLocation(plant.x,plant.y)
+            plant.draw(world_x, world_y, game_window)
 
     def logicTick(self):
-        return
+        for plant in self.plants:
+            plant.tick()
+            if plant.seeding == 1 and plant.seeded > 0:
+                plant.seeded -= 1
+                x, y = self.grid.calcRandNearby(plant.x,plant.y,plant.seed_range)
+                if x != None:
+                    new_plant = Plant(x,y)
+                    self.plants.append(new_plant)
+                plant.energy -= plant.energy_steps * 2
+            if plant.alive == False:
+                self.plants.remove(plant)
+    def addPlant(self):
+        x, y = self.grid.randEmptySpace()
+        plant = Plant(x,y)
+        self.plants.append(plant)
 
-    
+    def setOccupiedGrid():
+        self.grid.occupied_grid = np.zeros((GAME_GRID_WIDTH,GAME_GRID_HEIGHT))
+        for plant in self.plants:
+            self.grid.occupied_grid[plant.x][plant.y] = 1
+
 # Primary game grid actions
 class GameGrid:
     def __init__(self,width,height):
