@@ -790,7 +790,7 @@ while run_game_loop:
             run_game_loop = False
 
     if not gm.paused:
-        for i in range(SKIP_FRAMES):
+        for i in range(SKIP_FRAMES+1):
             gm.logicTick()
 
         gm.draw(game_window)
