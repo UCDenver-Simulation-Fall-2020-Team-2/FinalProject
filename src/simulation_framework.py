@@ -17,11 +17,11 @@ ABS_PATH = path.dirname(path.realpath(__file__))
 WINDOW_WIDTH = 600
 WINDOW_HEIGHT = 700
 
-NUMBER_OF_PLAYERS = 10
+NUMBER_OF_PLAYERS = 20
 
 # How many tiles should the grid have horizontally and vertically?
 # CURRENTLY ALL GRIDS MUST BE SQUARE
-GAME_GRID_WIDTH = 5
+GAME_GRID_WIDTH = 20
 GAME_GRID_HEIGHT = GAME_GRID_WIDTH
 
 # Total number of spaces 
@@ -54,7 +54,7 @@ SKIP_FRAMES = 0
 
 # The number of food pieces that will spawn each time there is no food
 # on the grid.
-MAX_NUM_FOOD_ON_GRID = 1
+MAX_NUM_FOOD_ON_GRID = 40
 
 # How much energy does the mouse get from food?
 ENERGY_PER_FOOD = 20
@@ -93,9 +93,11 @@ class GridSpace:
         self.color = pg.Color("#000000")
     # Set a tile to be type 'player'
     def setPlayer(self):
-        self.color = pg.Color("#0000FF")
+        #self.color = pg.Color("#0000FF")
         self.type = "Player"
-        self.img = None
+        self.img = pg.image.load(path.join(ABS_PATH,"art_assets","agent_faces","agent_faces_neutral.png"))
+        self.img = pg.transform.scale(self.img,(SQUARE_SIZE,SQUARE_SIZE))
+        self.img.fill(rand_color(),special_flags=pg.BLEND_ADD)
         
     # Set a tile to be type 'food'    
     def setFood(self):
@@ -146,9 +148,10 @@ class GameManager():
         """ Proceed one tick in the game logic. """
 
         # Add food if there is none on the grid
-        if self.game_grid.occupied_spaces == []:
+        if self.game_grid.number_of_food == 0:
             for i in range(MAX_NUM_FOOD_ON_GRID):
                 self.game_grid.addFood()
+                self.game_grid.number_of_food += 1
 
         #self.game_grid.calcSmellMatrix()
         self.game_grid.calcPlayerSense()
@@ -326,7 +329,8 @@ class AgentStats:
         self.max_energy = MAX_ENERGY
         self.energy = self.max_energy
         self.score = 0
-        self.speed = 1 #TODO: parameterize speed
+        self.speed = 4
+        self.size = 1/self.speed
         
 # A class managing player actions
 class Player:
@@ -402,6 +406,7 @@ class GameGrid:
         self.smell_grid = []
         self.occupied_grid = []
         self.occupied_spaces = []
+        self.number_of_food = 0
 
         self.reset()
         self.default_color = pg.Color("#FFFFFF")
@@ -552,6 +557,7 @@ class GameGrid:
 
     # Reset the game grid
     def reset(self):
+        self.number_of_food = 0
         self.smell_grid = np.zeros((self.width, self.height))
         self.occupied_grid = np.zeros((self.width, self.height), dtype="int")
         self.occupied_spaces = []
@@ -650,6 +656,7 @@ class GameGrid:
             removed_tile_type = self.removeTile(x,y)
             if removed_tile_type == "Food":
                 self.player[index].eatFood()
+                self.number_of_food -= 1
                 self.calcSmellMatrix()
 
     # Add a player to the grid.
@@ -758,6 +765,8 @@ frame_count = 0
 
 clock = pg.time.Clock()
 
+gm.game_states.append(GameState(gm.game_grid))
+
 while run_game_loop:
 
     # Check for key presses
@@ -788,9 +797,8 @@ while run_game_loop:
         # Check to see if the user has requested that the game end.
         if event.type == pg.QUIT:
             run_game_loop = False
-
     if not gm.paused:
-        for i in range(SKIP_FRAMES):
+        for i in range(SKIP_FRAMES + 1):
             gm.logicTick()
 
         gm.draw(game_window)
