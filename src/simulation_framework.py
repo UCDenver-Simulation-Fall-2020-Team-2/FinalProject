@@ -326,7 +326,7 @@ class AgentStats:
         self.max_energy = MAX_ENERGY
         self.energy = self.max_energy
         self.score = 0
-        self.speed = 1
+        self.speed = 1 #TODO: parameterize speed
         
 # A class managing player actions
 class Player:
