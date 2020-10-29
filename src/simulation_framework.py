@@ -17,7 +17,7 @@ ABS_PATH = path.dirname(path.realpath(__file__))
 WINDOW_WIDTH = 600
 WINDOW_HEIGHT = 700
 
-NUMBER_OF_PLAYERS = 20
+NUMBER_OF_PLAYERS = 10
 
 # How many tiles should the grid have horizontally and vertically?
 # CURRENTLY ALL GRIDS MUST BE SQUARE
@@ -54,7 +54,7 @@ SKIP_FRAMES = 0
 
 # The number of food pieces that will spawn each time there is no food
 # on the grid.
-MAX_NUM_FOOD_ON_GRID = 40
+MAX_NUM_FOOD_ON_GRID = 20
 
 # How much energy does the mouse get from food?
 ENERGY_PER_FOOD = 20
@@ -177,9 +177,12 @@ class GameManager():
         energy_list_string = ','.join([str(current_player.energy) for current_player in self.game_grid.player])
         food_eaten_string = ','.join([str(current_player.food_eaten) for current_player in self.game_grid.player])
         
+        global NUMBER_OF_PLAYERS
+        
         game_window.blit(font.render(f"SCORE:      {score_list_string}", 0, (255, 0, 0)), (10, labels_y_start))
-        game_window.blit(font.render(f"ENERGY:     {energy_list_string}", 0, (255, 0, 0)), (10, labels_y_start+50))
-        game_window.blit(font.render(f"FOOD_EATEN: {food_eaten_string}", 0, (255, 0, 0)), (10, labels_y_start+100))        
+        game_window.blit(font.render(f"ENERGY:     {energy_list_string}", 0, (255, 0, 0)), (10, labels_y_start+25))
+        game_window.blit(font.render(f"FOOD_EATEN: {food_eaten_string}", 0, (255, 0, 0)), (10, labels_y_start+50))
+        game_window.blit(font.render(f"POPULATION: {NUMBER_OF_PLAYERS}", 0, (255, 0, 0)), (10, labels_y_start+75))        
         game_window.blit(font.render(f"Round:      {self.round}", 0, (255, 0, 0)), (10, 0))        
 
         pg.display.flip()        
@@ -189,6 +192,8 @@ class GameManager():
         Check if something happened to end the round.
         If statements are separated in case you wanted to modify the behavior.
         """
+        global NUMBER_OF_PLAYERS
+        
         bHasPlayerDied = False
         
         for current_player in self.game_grid.player:
@@ -196,8 +201,10 @@ class GameManager():
                 bHasPlayerDied = True
                 if DEATH_PENALTY:
                     current_player.score = 0
+                    self.game_grid.player.remove(current_player)
                     
-        for current_player in self.game_grid.player:
+                    NUMBER_OF_PLAYERS -= 1
+                    
             if current_player.food_eaten >= FOOD_PER_ROUND:
                 self.endRound()
                 return
@@ -207,13 +214,15 @@ class GameManager():
 
     def endRound(self):
         """ End the round and start a new one"""
+        global NUMBER_OF_PLAYERS
         for current_player in self.game_grid.player:
             self.round_scores.append(current_player.score)
+            if current_player.energy > 100:
+                NUMBER_OF_PLAYERS += 1
+                
         self.game_grid.reset()
         self.round += 1
-        # DEBUG
-        #   self.printScoreStats()
-        # /DEBUG
+        
         self.reset()
 
     def printScoreStats(self):
