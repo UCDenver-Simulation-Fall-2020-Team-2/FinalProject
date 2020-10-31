@@ -45,7 +45,7 @@ SCENT_STACKING = True
 DEATH_PENALTY = True
 
 # Least amount of energy required at the end of each round to create a child
-REPRODUCTION_ENERGY_REQ = 180
+REPRODUCTION_ENERGY_REQ = 200
 
 # Self explanatory
 BACKGROUND_COLOR = pg.Color("#505050")
@@ -893,7 +893,7 @@ pg.display.set_caption('ASSIGNMENT 1')
 game_window.fill(BACKGROUND_COLOR)
 
 #font = pg.font.Font(path.join(ABS_PATH,"Retron2000.ttf"), 30)
-font = pg.font.SysFont("monospace", 30)
+font = pg.font.SysFont("monospace", 15)
 
 run_game_loop = True
 
