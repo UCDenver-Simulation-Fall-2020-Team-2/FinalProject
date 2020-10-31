@@ -44,6 +44,9 @@ SCENT_STACKING = True
 # Does a round's score go down to zero if the player dies?
 DEATH_PENALTY = True
 
+# Least amount of energy required at the end of each round to create a child
+REPRODUCTION_ENERGY_REQ = 180
+
 # Self explanatory
 BACKGROUND_COLOR = pg.Color("#505050")
 PAUSED_BACKGROUND_COLOR = pg.Color("#303030")
@@ -225,10 +228,10 @@ class GameManager():
         global NUMBER_OF_PLAYERS
         self.game_grid.roundReset()
 
-        for i in range(len(self.game_grid.player)):
+        for i in range(NUMBER_OF_PLAYERS):
             self.round_scores.append(self.game_grid.player[i].score)
 
-            if self.game_grid.player[i].energy > 200:
+            if self.game_grid.player[i].energy > REPRODUCTION_ENERGY_REQ:
                 self.game_grid.createChild(self.game_grid.player[i].id)
                 NUMBER_OF_PLAYERS += 1
 
