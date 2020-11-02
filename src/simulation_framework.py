@@ -45,7 +45,7 @@ SCENT_STACKING = True
 DEATH_PENALTY = True
 
 # Least amount of energy required at the end of each round to create a child
-REPRODUCTION_ENERGY_REQ = 200
+REPRODUCTION_ENERGY_REQ = 180
 
 # Self explanatory
 BACKGROUND_COLOR = pg.Color("#505050")
@@ -236,9 +236,10 @@ class GameManager():
                 NUMBER_OF_PLAYERS += 1
 
         # self.game_grid.reset()
+        self.writeRoundData(dead_players) if dead_players else self.writeRoundData()
+        self.game_grid.addRoundChildren()
         self.game_grid.gridPopulate()
         self.round += 1
-        self.writeRoundData(dead_players) if dead_players else self.writeRoundData()
         self.reset()
 
     def printScoreStats(self):
@@ -297,7 +298,7 @@ class GameManager():
             data_dict['Score'].append(player.score)
             data_dict['Alive?'].append(player.alive)
 
-        #pd.DataFrame(data_dict).to_csv(path.join(ABS_PATH, 'stat_data', f'agent_stats_round{self.round}.csv'), index=False)
+        pd.DataFrame(data_dict).to_csv(path.join(ABS_PATH, 'stat_data', f'agent_stats_round{self.round}.csv'), index=False)
 
 # class SensoryMatrix:
 class GameObject:
@@ -457,6 +458,7 @@ class GameGrid:
         self.occupied_grid = np.zeros((self.width, self.height), dtype="int")
         self.occupied_spaces = []
         self.player = []
+        self.new_player = []
 
         self.default_color = pg.Color("#FFFFFF")
         self.line_color = pg.Color("#010101")
@@ -828,7 +830,12 @@ class GameGrid:
     def createChild(self, parent_id):
         x, y = self.randEmptySpace()
         child_player = Player(x, y, parent_id)
-        self.player.append(child_player)
+        self.new_player.append(child_player)
+
+    def addRoundChildren(self):
+        if self.new_player:
+            self.player.extend(self.new_player)
+            self.new_player = []
 
     # Removes Player argument from GameGrid
     def removePlayer(self, tar_player):
