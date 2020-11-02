@@ -297,7 +297,7 @@ class GameManager():
             data_dict['Score'].append(player.score)
             data_dict['Alive?'].append(player.alive)
 
-        # pd.DataFrame(data_dict).to_csv(path.join(ABS_PATH, 'stat_data', 'agent_stats_round{}.csv'.format(self.round)))
+        #pd.DataFrame(data_dict).to_csv(path.join(ABS_PATH, 'stat_data', f'agent_stats_round{self.round}.csv'), index=False)
 
 # class SensoryMatrix:
 class GameObject:
