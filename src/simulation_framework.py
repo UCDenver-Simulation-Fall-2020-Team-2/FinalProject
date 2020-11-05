@@ -6,6 +6,7 @@ from os import path
 #import time
 from enum import Enum
 from math import sqrt
+import copy
 #random.seed(99)
 
 # Initialize pygame.
@@ -98,6 +99,7 @@ class GridSpace:
         self.x = x
         self.y = y
         self.color = pg.Color("#000000")
+        
     # Set a tile to be type 'player'
     def setPlayer(self):
         #self.color = pg.Color("#0000FF")
@@ -112,7 +114,6 @@ class GridSpace:
         self.img = pg.image.load(path.join(ABS_PATH,"art_assets","plant_growth","plant_growth_7.png"))
         self.img = pg.transform.scale(self.img,(SQUARE_SIZE,SQUARE_SIZE))
         self.img.fill(rand_color(),special_flags=pg.BLEND_MIN)
-
         self.type = "Food"
 
 # A class that allows for the saving and restoring of the game.
@@ -124,16 +125,13 @@ class GameState():
         self.player_energy = [current_player.energy for current_player in game_grid.player]
         self.player_food_eaten = [current_player.food_eaten for current_player in game_grid.player]
         self.player_score = [current_player.score for current_player in game_grid.player]
-
-        self.foods_loc = []
-        for tile in game_grid.occupied_spaces:
-            if tile.type == "Food":
-                self.foods_loc.append([tile.x,tile.y])
-                    
+        self.food_loc = [(tile.x, tile.y) for tile in game_grid.occupied_spaces if tile.type == "Food"]
+        self.number_of_food = game_grid.number_of_food
+        
     # Restore a player object from the game state
     def restorePlayer(self):
         player_list = []
-        for current_player in range(NUMBER_OF_PLAYERS):
+        for current_player in range(len(self.player_loc_x)):
             new_player = Player(self.player_loc_x[current_player], 
                             self.player_loc_y[current_player])
             new_player.energy = self.player_energy[current_player]
@@ -153,7 +151,10 @@ class GameManager():
 
     def logicTick(self):
         """ Proceed one tick in the game logic. """
-
+        #print((f"-----------------------------\n"
+        #       f"Occupied player spaces at beginning of tick:\n"
+        #       f"{self.game_grid.getPlayerPositionDict()}\n"
+        #       f"-----------------------------\n"))
         # Add food if there is none on the grid
         if self.game_grid.number_of_food == 0:
             for i in range(MAX_NUM_FOOD_ON_GRID):
@@ -163,12 +164,19 @@ class GameManager():
         #self.game_grid.calcSmellMatrix()
         self.game_grid.calcPlayerSense2()
         movement_list = []
-        for current_player in range(NUMBER_OF_PLAYERS):
+        for current_player in range(len(self.game_grid.player)):
             movement_list.append(smart_mouse(self.game_grid.player[current_player].smell_matrix))
         
         self.game_grid.movePlayer(movement_list)
+        
+        #print((f"-----------------------------\n"
+        #       f"Occupied player spaces after movePlayer of tick:\n"
+        #       f"{self.game_grid.getPlayerPositionDict()}\n"
+        #       f"-----------------------------\n"))
+        
         self.checkEndStates()
         self.saveGameState()
+    
 
     def draw(self, game_window):
         """ Draw the current gamestate to the screen """
@@ -266,9 +274,12 @@ class GameManager():
     def restoreGameState(self,game_state):
         self.game_grid.reset()
         self.game_grid.player = game_state.restorePlayer()
-        for food in game_state.foods_loc:
-            self.game_grid.addFood(food[0], food[1])
-
+        self.game_grid.number_of_food = game_state.number_of_food
+        for x, y in game_state.food_loc:
+            self.game_grid.addFood(x, y)
+        for current_player in self.game_grid.player:
+            self.game_grid.occupied_spaces.append(current_player.tile)
+            
     # Rewind a given number of game states.
     def rewindGameState(self,num_to_rewind):
         if len(self.game_states) <= 1:
@@ -298,7 +309,7 @@ class GameManager():
             data_dict['Score'].append(player.score)
             data_dict['Alive?'].append(player.alive)
 
-        pd.DataFrame(data_dict).to_csv(path.join(ABS_PATH, 'stat_data', f'agent_stats_round{self.round}.csv'), index=False)
+        pd.DataFrame(data_dict).to_csv(path.join(ABS_PATH, 'stat_data', f'agent_stats_round{self.round}.csv'), index=False, mode="w+")
 
 # class SensoryMatrix:
 class GameObject:
@@ -468,7 +479,7 @@ class GameGrid:
             new_player = Player(x, y)
             self.addTile(new_player.tile)
             self.player.append(new_player)
-            print(f"{x}, {y}.\n{self.occupied_grid}, {self.occupied_spaces}")
+            #print(f"{x}, {y}.\n{self.occupied_grid}, {self.occupied_spaces}")
 
         #self.player[-1].tile_x = -5
         #self.player[-1].tile_y = -5
@@ -754,6 +765,15 @@ class GameGrid:
 
         return dct
 
+    def debugGetTileDict(self):
+        dct = {}
+        for tile in self.occupied_spaces:
+            if (tile.x, tile.y) in dct:
+                dct[(tile.x, tile.y)] += 1
+            else:
+                dct[(tile.x, tile.y)] = 1
+        return dct
+    
     # Move the player in a direction.
     def movePlayer(self,direction_list):
         # Dir is a number between 0 and 3:
@@ -765,11 +785,15 @@ class GameGrid:
         # (x, y) = number of players on grid position
         # food and unoccupied grid positions not tracked
         position_dct = self.getPlayerPositionDict()
-
+        #print(("--------------\nInitial debug dict\n--------------\n"
+        #       f"{self.debugGetTileDict()}\n"))
+        
         for index, direction in enumerate(direction_list):
             old_x, old_y = self.player[index].tile.x, self.player[index].tile.y
             new_x, new_y = self.player[index].move(direction, 1)
 
+            #print((f"--------------\nPlayer dict after player move at {index}\n--------------\n"
+            #       f"{self.getPlayerPositionDict()}\n"))
             # If player moved position
             if old_x != new_x or old_y != new_y:
                 position_dct[(old_x, old_y)] -= 1
@@ -789,6 +813,8 @@ class GameGrid:
                     self.calcSmellMatrix()
 
                 self.occupied_grid[new_x][new_y] = 1
+                #print((f"--------------\nPlayer dict after index {index}\n--------------\n"
+                #       f"{self.getPlayerPositionDict()}\n"))
 
     # Add a player to the grid.
     def addPlayer(self,x=-1,y=-1):
