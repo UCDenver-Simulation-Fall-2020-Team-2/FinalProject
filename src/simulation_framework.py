@@ -18,16 +18,16 @@ ABS_PATH = path.dirname(path.realpath(__file__))
 
 # Window width and height
 WINDOW_WIDTH = 600
-WINDOW_HEIGHT = 700
+WINDOW_HEIGHT = 1200
 
-NUMBER_OF_PLAYERS = 3
+NUMBER_OF_PLAYERS = 2
 
 # Shared global across Player instances to assign unique IDs
 PLAYER_ID_TRACKER = 0
 
 # How many tiles should the grid have horizontally and vertically?
 # CURRENTLY ALL GRIDS MUST BE SQUARE
-GAME_GRID_WIDTH = 3
+GAME_GRID_WIDTH = 10
 GAME_GRID_HEIGHT = GAME_GRID_WIDTH
 
 # Total number of spaces 
@@ -54,7 +54,7 @@ BACKGROUND_COLOR = pg.Color("#505050")
 PAUSED_BACKGROUND_COLOR = pg.Color("#303030")
 
 # Number of frames to draw per second.
-FRAMES_PER_SECOND = 30
+FRAMES_PER_SECOND = 1000
 
 # Used to determine how many frames are skipped.
 # Helps when you want the gamelogic to move faster than
@@ -87,7 +87,7 @@ class BehaviorType(Enum):
     AGGRESSIVE = 1
     PROCREATION = 2
 
-BEHAVIOR_TYPE = BehaviorType.PROCREATION
+BEHAVIOR_TYPE = BehaviorType.AGGRESSIVE
     
 def rand_color(min_brightness=50, max_brightness=150):
     if min_brightness < 0:
@@ -180,58 +180,68 @@ class GameManager():
         # <key, val> = <(x, y), [(player, direction)]>
         collision_detection_game_grid_dict = {}
         
-        if self.curr_game_state_index == len(self.game_states)-1 and not EXTINCTION and not EXCEPTION_CAUGHT:
-            if self.game_grid.number_of_food == 0:
-                for i in range(MAX_NUM_FOOD_ON_GRID):
-                    self.game_grid.addFood()
-    
-            #self.game_grid.calcSmellMatrix()
-            self.game_grid.calcPlayerSense2()
-            #movement_list = []
-            current_player = 0
-            
-            #for current_player in range(len(self.game_grid.player)):
-            while current_player < len(self.game_grid.player):
-                decided_direction = smart_mouse(self.game_grid.player[current_player].smell_matrix)
-                #transient_current_player = Player(self.game_grid.player[current_player].tile.x, self.game_grid.player[current_player].tile.y)
-                new_x, new_y = self.game_grid.player[current_player].next_move(decided_direction)
-                if (new_x == self.game_grid.player[current_player].tile.x and new_y == self.game_grid.player[current_player].tile.y):
-                    self.game_grid.player[current_player].useEnergy(5)
-                    if (not self.game_grid.player[current_player].alive):
-                        self.game_grid.player[current_player].die()
-                        self.game_grid.removePlayer(self.game_grid.player[current_player])
-                        self.game_grid.dead_players.append(self.game_grid.player[current_player])
-                        NUMBER_OF_PLAYERS -= 1
-                    else:
-                        current_player += 1
-                else:    
-                    if (new_x, new_y) in collision_detection_game_grid_dict:
-                        collision_detection_game_grid_dict[(new_x, new_y)].append((self.game_grid.player[current_player], decided_direction))
-                    else:
-                        collision_detection_game_grid_dict[(new_x, new_y)] = [(self.game_grid.player[current_player], decided_direction)]
-                    current_player += 1
-                #movement_list.append(decided_direction)
-            
-            try:
-                self.game_grid.movePlayer(collision_detection_game_grid_dict)
-            except Exception as e:
-                EXCEPTION_CAUGHT = True
-                traceback.print_exc()
-                print(f"Index of broken logic tick: {self.curr_game_state_index}")
+        try:
+            if self.curr_game_state_index == len(self.game_states)-1 and not EXTINCTION and not EXCEPTION_CAUGHT:
+                if self.game_grid.number_of_food == 0:
+                    for i in range(MAX_NUM_FOOD_ON_GRID):
+                        self.game_grid.addFood()
+                elif self.game_grid.number_of_food < 0:
+                    EXCEPTION_CAUGHT = True
+                    print(f"Index of broken logic tick: {self.curr_game_state_index}")
+                    return
                 
-            self.curr_number_of_players = NUMBER_OF_PLAYERS
-            
-            #print((f"-----------------------------\n"
-            #       f"Occupied player spaces after movePlayer of tick:\n"
-            #       f"{self.game_grid.getPlayerPositionDict()}\n"
-            #       f"-----------------------------\n"))
-            
-            self.checkEndStates()
-            self.saveGameState()
-        elif self.curr_game_state_index != len(self.game_states)-1:
-            self.curr_game_state_index += 1
-            self.restoreGameState(self.game_states[self.curr_game_state_index])
-            
+                #self.game_grid.calcSmellMatrix()
+                self.game_grid.calcPlayerSense2()
+                #movement_list = []
+                current_player = 0
+                
+                #for current_player in range(len(self.game_grid.player)):
+                print(f"Before: {len(self.game_grid.player)}")
+                i = 0
+                while current_player < len(self.game_grid.player):
+                    i += 1
+                    decided_direction = smart_mouse(self.game_grid.player[current_player].smell_matrix)
+                    #transient_current_player = Player(self.game_grid.player[current_player].tile.x, self.game_grid.player[current_player].tile.y)
+                    new_x, new_y = self.game_grid.player[current_player].next_move(decided_direction)
+                    if (new_x == self.game_grid.player[current_player].tile.x and new_y == self.game_grid.player[current_player].tile.y):
+                        print("Killing in place")
+                        self.game_grid.player[current_player].useEnergy(5)
+                        if (not self.game_grid.player[current_player].alive):
+                            self.game_grid.player[current_player].die()
+                            self.game_grid.dead_players.append(self.game_grid.player[current_player])
+                            self.game_grid.removePlayer(self.game_grid.player[current_player])
+                            NUMBER_OF_PLAYERS -= 1
+                        else:
+                            current_player += 1
+                    else:    
+                        if (new_x, new_y) in collision_detection_game_grid_dict:
+                            collision_detection_game_grid_dict[(new_x, new_y)].append((self.game_grid.player[current_player], decided_direction))
+                        else:
+                            collision_detection_game_grid_dict[(new_x, new_y)] = [(self.game_grid.player[current_player], decided_direction)]
+                        current_player += 1
+                    #movement_list.append(decided_direction)
+                print(f"i = {i}")
+                
+                print(f"FOOD: Before move player: {self.game_grid.number_of_food}")
+                self.game_grid.movePlayer(collision_detection_game_grid_dict)
+                print(f"FOOD: After move player: {self.game_grid.number_of_food}")
+                
+                self.curr_number_of_players = NUMBER_OF_PLAYERS
+                
+                #print((f"-----------------------------\n"
+                #       f"Occupied player spaces after movePlayer of tick:\n"
+                #       f"{self.game_grid.getPlayerPositionDict()}\n"
+                #       f"-----------------------------\n"))
+                
+                self.checkEndStates()
+                self.saveGameState()
+            elif self.curr_game_state_index != len(self.game_states)-1:
+                self.curr_game_state_index += 1
+                self.restoreGameState(self.game_states[self.curr_game_state_index])
+        except Exception as e:
+            EXCEPTION_CAUGHT = True
+            traceback.print_exc()
+            print(f"Index of broken logic tick: {self.curr_game_state_index}")
 
     def draw(self, game_window):
         """ Draw the current gamestate to the screen """
@@ -255,7 +265,10 @@ class GameManager():
         #game_window.blit(font.render(f"FOOD_EATEN: {food_eaten_string}", 0, (255, 0, 0)), (10, labels_y_start+50))
         game_window.blit(font.render(f"FOOD LEFT: {self.game_grid.number_of_food}", 0, (255, 0, 0)), (10, labels_y_start+50))
         game_window.blit(font.render(f"POPULATION: {self.curr_number_of_players}", 0, (255, 0, 0)), (10, labels_y_start+75))
-        game_window.blit(font.render(f"Game State Index: {self.curr_game_state_index}", 0, (255, 0, 0)), (10, labels_y_start+100))        
+        game_window.blit(font.render(f"LEN(PLAYER): {len(self.game_grid.player)}", 0, (255, 0, 0)), (10, labels_y_start+100))
+        game_window.blit(font.render(f"LEN(OCCUPIED_SPACES): {len(self.game_grid.occupied_spaces)}", 0, (255, 0, 0)), (10, labels_y_start+125))
+        game_window.blit(font.render(f"NUM_SPACES-LEN(OCCUPIED_SPACES): {NUM_SPACES-len(self.game_grid.occupied_spaces)}", 0, (255, 0, 0)), (10, labels_y_start+150))
+        game_window.blit(font.render(f"Game State Index: {self.curr_game_state_index}", 0, (255, 0, 0)), (10, labels_y_start+175))        
         game_window.blit(font.render(f"Round:      {self.round}", 0, (255, 0, 0)), (10, 0))        
 
         pg.display.flip()        
@@ -300,15 +313,19 @@ class GameManager():
         """ End the round and start a new one"""
         global NUMBER_OF_PLAYERS
         global BEHAVIOR_TYPE
-        self.game_grid.roundReset()
 
+        #new_number_of_players = NUMBER_OF_PLAYERS
+        
         for i in range(NUMBER_OF_PLAYERS):
             self.round_scores.append(self.game_grid.player[i].score)
 
             if (BEHAVIOR_TYPE != BehaviorType.PROCREATION):
                 if self.game_grid.player[i].energy > REPRODUCTION_ENERGY_REQ:
-                    self.game_grid.createChild(self.game_grid.player[i].id)
-                    NUMBER_OF_PLAYERS += 1
+                    #self.game_grid.createChild(self.game_grid.player[i].id)
+                    #new_number_of_players += 1
+                    pass
+                    
+       # NUMBER_OF_PLAYERS = new_number_of_players
         
         # self.game_grid.reset()
         self.writeRoundData(self.game_grid.dead_players) if self.game_grid.dead_players else self.writeRoundData()
@@ -317,11 +334,14 @@ class GameManager():
             player.score = 0
         
         if (BEHAVIOR_TYPE != BehaviorType.PROCREATION):
-            self.game_grid.addRoundChildren()
-            self.game_grid.gridPopulate()
+            pass
+            #self.game_grid.addRoundChildren()
+            #self.game_grid.gridPopulate()
         
         self.round += 1
         self.curr_number_of_players = NUMBER_OF_PLAYERS
+        self.game_grid.dead_players = []
+        self.game_grid.roundReset()
         self.reset()
 
     def printScoreStats(self):
@@ -564,7 +584,7 @@ class Player:
     def die(self):
         self.alive = False
         self.tile.color = pg.Color("#00005F")
-
+        
     def printStats(self):
         print(f"FOOD EATEN: {self.food_eaten}")
 
@@ -649,6 +669,9 @@ class GameGrid:
                     if self.checkValidTile(x, y):
                         for tile in self.occupied_spaces:
                             if tile.type == 'Food':
+                                if self.occupied_grid[tile.x][tile.y] != 2:
+                                   print("FATAL FOOD ERROR!") 
+                                   exit(9)
                                 if tile.x == x and tile.y == y:
                                     current_player.smell_matrix[x_offset+1][y_offset+1] = 1000
                                 else:
@@ -772,7 +795,7 @@ class GameGrid:
     # Readies the grid for next round based on data in self.player
     def roundReset(self):
         # Reset food on board (self.addFood called by GameManager on next round)
-        self.number_of_food = 0
+        #self.number_of_food = 0
         self.total_food_consumed = 0
         # Reset occupied tile tracking list
         #self.occupied_spaces = []
@@ -811,24 +834,26 @@ class GameGrid:
                     found = True
             return x,y 
         else:
+            print("randEmptySpace else")
             empty_left = NUM_SPACES-len(self.occupied_spaces)
-            choice = random.randint(0,empty_left)
+            print(f"empty_left = {empty_left}")
+            choice = random.randint(0,empty_left-1)
             if(empty_left < 0):
                 print(choice)
             count = 0
             for i in range(self.height):
                 for j in range(self.width):
                     if self.occupied_grid[i][j] == 0:
-                        #if count >= choice:
-                        return i,j
-                    count += 1
+                        if count >= choice:
+                            return i,j
+                        count += 1
 # =============================================================================
-#             for i in range(self.height):
-#                 for j in range(self.width):
-#                     if self.occupied_grid[i][j] == 0:
-#                         if count >= choice:
-#                           return i,j
-#                          count += 1
+            for i in range(self.height):
+                for j in range(self.width):
+                    if self.occupied_grid[i][j] == 0:
+                        if count >= choice:
+                            return i,j
+                        count += 1
 # =============================================================================
             #print("ERROR: No spaces available")
             #exit(9)
@@ -873,7 +898,7 @@ class GameGrid:
 
     def removeFoodTile(self, x, y):
         for tile in self.occupied_spaces:
-            if tile.x == x and tile.y == y and tile.type == 'Food':
+            if tile.x == x and tile.y == y and tile.type == "Food":
                 tar_tile = tile
                 #break
                 self.occupied_spaces.remove(tar_tile)
@@ -882,7 +907,7 @@ class GameGrid:
         dct = {}
 
         for tile in self.occupied_spaces:
-            if tile.type == 'Player':
+            if tile.type == "Player":
                 if (tile.x, tile.y) in dct:
                     dct[(tile.x, tile.y)] += 1
                 else:
@@ -917,9 +942,13 @@ class GameGrid:
         #print([(tile.x, tile.y) for tile in self.occupied_spaces])
         #print(("--------------\nInitial debug dict\n--------------\n"
         #       f"{self.debugGetTileDict()}\n"))
+        
         print("==================================")
+        print(self.occupied_grid)
+        print(NUM_SPACES - len(self.occupied_spaces))
         print(f"Tick: {MOVE_TICK}")
         #print(collision_detection_grid_dict)
+        
         for i, key_tuple in enumerate(collision_detection_grid_dict):
             #print(i)
             player_direction_list = collision_detection_grid_dict[key_tuple]
@@ -937,8 +966,8 @@ class GameGrid:
                     for index, (player, direction) in enumerate(player_direction_list):
                         if (index != remaining_tuple[1]):
                             player.die()
-                            self.removePlayer(player)
                             self.dead_players.append(player)
+                            self.removePlayer(player)
                             NUMBER_OF_PLAYERS -= 1
                     remaining_player, remaining_player_direction = player_direction_list[remaining_tuple[1]]
                     self.moveRemainingPlayer(remaining_player, remaining_player_direction, position_dct)
@@ -949,16 +978,18 @@ class GameGrid:
                         player.useEnergy(REPRODUCTION_ENERGY_REQ)
                         if (not player.alive):
                             self.occupied_grid[player.tile.x][player.tile.y] = 0
-                            self.removePlayer(player)
                             self.dead_players.append(player)
+                            self.removePlayer(player)
                             NUMBER_OF_PLAYERS -= 1
-                            
+                    
+                    print(f"FOOD: Before movePlayer - pre-baby: {self.number_of_food}")
                     if (self.occupied_grid[key_tuple[0]][key_tuple[1]] == 2):
                         self.removeFoodTile(key_tuple[0], key_tuple[1])
                         self.number_of_food -= 1
                         self.total_food_consumed += 1
                         self.calcSmellMatrix()
-                        
+                    print(f"FOOD: After movePlayer - pre-baby: {self.number_of_food}")
+                    
                     if (self.occupied_grid[key_tuple[0]][key_tuple[1]] == 0
                         or self.occupied_grid[key_tuple[0]][key_tuple[1]] == 2):
                         baby = Player(key_tuple[0], key_tuple[1])
@@ -967,16 +998,16 @@ class GameGrid:
                         self.addTile(baby.tile)
                         self.player.append(baby)
                         #baby.eatFood()
-                        
-                    
-                    
             else:
                 if (self.occupied_grid[key_tuple[0]][key_tuple[1]] == 0
                         or self.occupied_grid[key_tuple[0]][key_tuple[1]] == 2):
                     remaining_player, remaining_player_direction = player_direction_list[0]
                     self.moveRemainingPlayer(remaining_player, remaining_player_direction, position_dct)
+        print(self.occupied_grid)
+        print(NUM_SPACES - len(self.occupied_spaces))
         print("==================================")
         MOVE_TICK += 1
+        
     # Moves a remaining player after collisions are resolved
     def moveRemainingPlayer(self, remaining_player, remaining_player_direction, position_dct):
         global NUMBER_OF_PLAYERS
@@ -984,31 +1015,38 @@ class GameGrid:
         old_x, old_y = remaining_player.tile.x, remaining_player.tile.y
         new_x, new_y = remaining_player.move(remaining_player_direction, 1)
         if not remaining_player.alive:
-            self.removePlayer(remaining_player)
             self.dead_players.append(remaining_player)
+            self.occupied_grid[old_x][old_y] = 0
+            self.removePlayer(remaining_player)
             NUMBER_OF_PLAYERS -= 1
         else:
         #print((f"--------------\nPlayer dict after player move at {index}\n--------------\n"
         #       f"{self.getPlayerPositionDict()}\n"))
         # If player moved position
             if old_x != new_x or old_y != new_y:
+                print("Change in position!")
                 position_dct[(old_x, old_y)] -= 1
 
                 if position_dct[(old_x, old_y)] < 1:
                     self.occupied_grid[old_x][old_y] = 0
-
+                else:
+                    print("ERROR: Did not set the old position to 0")
+                    exit(9)
+                    
                 if (new_x, new_y) in position_dct:
                     position_dct[(new_x, new_y)] += 1
                 else: 
                     position_dct[(new_x, new_y)] = 1
                 
+                print(f"FOOD: Before moveRemainingPlayer - food tile: {self.number_of_food}")
                 if self.occupied_grid[new_x][new_y] == 2:
                     self.removeFoodTile(new_x, new_y)
                     remaining_player.eatFood()
                     self.number_of_food -= 1
                     self.total_food_consumed += 1
                     self.calcSmellMatrix()
-
+                print(f"FOOD: After moveRemainingPlayer - food tile: {self.number_of_food}")
+                
                 self.occupied_grid[new_x][new_y] = 1
         
     # Add a player to the grid.
@@ -1021,12 +1059,12 @@ class GameGrid:
     # add a piece of food to the grid
     def addFood(self,x=-1,y=-1):
         temp_tile = self.genTile(x,y)
-        if temp_tile != None:
+        if temp_tile is not None:
             temp_tile.setFood()
             self.addTile(temp_tile)
             self.number_of_food += 1
-        else:
-            return None
+        #else:
+        #    return None
         #self.calcSmellMatrix()
 
     # Check if there is food at the XY set provided
@@ -1063,10 +1101,11 @@ class GameGrid:
 
     # Removes Player argument from GameGrid
     def removePlayer(self, tar_player):
-        self.player.remove(tar_player)
         self.occupied_spaces.remove(tar_player.tile)
-        self.occupied_grid[tar_player.tile.x][tar_player.tile.y] = 0
-
+        if (self.occupied_grid[tar_player.tile.x][tar_player.tile.y] == 1):
+            self.occupied_grid[tar_player.tile.x][tar_player.tile.y] = 0
+        self.player.remove(tar_player)
+        
 # All simple mouse does is pick a random direction, and moves there.
 # Quite senseless, if you ask me.
 def simple_mouse():
