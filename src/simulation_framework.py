@@ -257,7 +257,6 @@ class Agent(GameObject):
             self.sense.draw(surface)
 
 
-
 # Draw the grid without anything else.
 def drawGenericGrid(self,surface,rect,num_x,num_y):
 
