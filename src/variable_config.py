@@ -5,7 +5,7 @@ WINDOW_HEIGHT = 700
 
 # How many tiles should the grid have horizontally and vertically?
 # CURRENTLY ALL GRIDS MUST BE SQUARE
-GAME_GRID_WIDTH = 10
+GAME_GRID_WIDTH = 3
 GAME_GRID_HEIGHT = GAME_GRID_WIDTH
 
 # Total number of spaces 
@@ -58,9 +58,9 @@ SMELL_DIST = 10
 
 SQUARE_SIZE = int(WINDOW_WIDTH/GAME_GRID_WIDTH*0.8)
 
-NUM_AGENTS = 2
+NUM_AGENTS = 3
 
-NUM_EVIL = 1
+NUM_EVIL = 0
 
 # Defines how smart the non-student agents are.
 # A value between 0 and 1, where a lower value means the 

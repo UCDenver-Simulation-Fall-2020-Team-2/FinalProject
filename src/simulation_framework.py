@@ -231,7 +231,7 @@ class Agent(GameObject):
         self.good_choice_chance = DEFAULT_INTELLIGENCE
         self.score = 0
         self.age = 0
-        self.last_pregnant_age = 0
+        self.last_pregnant_age = -PREGNANCY_COOLDOWN
         self.selected = False
     
     def choose_sprite(self):
@@ -845,7 +845,18 @@ class GameManager:
                                         break
                             target_agent.selected = False
                             self.agents.remove(target_agent)
-
+            
+            if agent.age >= AGE_OF_CONSENT and agent.pregnant == -1:
+                for target_agent in self.agents:
+                    if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT and (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
+                        if agent.x == target_agent.x and agent.y == target_agent.y:
+                            print("Impregnate!")
+                            target_agent.pregnant = 0
+                            target_agent.raw_img_path = path.join(ABS_PATH,"art_assets","agent_faces","agent_faces_procreation_evil")
+                            target_agent.calc_img_path(target_agent.raw_img_path)
+                            target_agent.loadImg(target_agent.img_path)
+                            target_agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
+            
         if agent.alive and agent.pregnant >= PREGNANCY_FOOD_GOAL:
             agent.pregnant = -1
             agent.last_pregnant_age = agent.age
