@@ -2,7 +2,6 @@ from simulation_framework import *
 import pygame as pg
 
 
-
 # Used to determine how many frames are skipped.
 # Helps when you want the gamelogic to move faster than
 # Your system can draw it.

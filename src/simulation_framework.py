@@ -1,4 +1,5 @@
 import pygame as pg
+from pygame.font import Font
 import numpy as np
 import random
 import sys
@@ -16,8 +17,6 @@ from copy import deepcopy
 
 # Get the current path of the python file. Used to load a font resource.
 ABS_PATH = path.dirname(path.realpath(__file__))
-
-
 
 def fast_dist(x1,y1,x2,y2):
     return np.linalg.norm(np.array((x1,y1))-np.array((x2,y2)))
@@ -49,6 +48,47 @@ def dir2offset(direction):
         print("Invalid direction, staying still")
     return x, y, difficulty_multiplier
 
+# Draw the grid without anything else.
+def drawGenericGrid(self,surface,rect,num_x,num_y):
+
+    total_x = rect.width
+    total_y = rect.height
+    grid_pos_x = rect.x
+    grid_pos_y = rect.y
+    
+    line_width = 1
+    square_size = int(rect.width/num_x)
+    line_color = pg.Color("#000000")
+
+    for i in range(num_y + 1):
+        pg.draw.rect(
+                    surface,
+                    line_color,
+                    pg.Rect(
+                        grid_pos_x,
+                        grid_pos_y, 
+                        1, 
+                        total_y)
+                )
+        grid_pos_x += square_size
+        if num_x == 3 and i == 2:
+            grid_pos_x += 1
+
+    grid_pos_x = rect.x
+
+    for i in range(num_x + 1):
+        pg.draw.rect(
+                    surface,
+                    line_color,
+                    pg.Rect(
+                        grid_pos_x,
+                        grid_pos_y, 
+                        total_x, 
+                        1)
+                )
+        grid_pos_y += square_size
+        if num_y == 3 and i == 2:
+            grid_pos_y += 1
 
 # A class that allows for the saving and restoring of the game.
 class GameState():
@@ -119,7 +159,6 @@ class GameObject:
     def draw(self,x,y,surface):
         surface.blit(self.img, self.img_rect.move(x,y))
 
-
 class Plant(GameObject):
     def __init__(self,x=None, y=None):
         self.stage = 1
@@ -155,7 +194,6 @@ class Plant(GameObject):
             if self.energy <= i * self.energy_steps:
                 return i
         return i
-
 
 class Agent(GameObject):
     def __init__(self,x=None,y=None,raw_img_path=None):
@@ -256,69 +294,31 @@ class Agent(GameObject):
         if self.type == 'main':
             self.sense.draw(surface)
 
+class EvilAgent(Agent):
+    def __init__(self,x=None,y=None):
+        self.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_evil")
+        super().__init__(x,y,self.raw_img_path)
+        self.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
+        self.type = 'evil'
+        self.good_choice_chance = DEFAULT_EVIL_INTELLIGENCE
+        self.sense.type = 'evil'
+        self.max_energy = MAX_ENERGY * 2
+        self.energy = self.max_energy
+    def choose_movement(self):
 
-# Draw the grid without anything else.
-def drawGenericGrid(self,surface,rect,num_x,num_y):
+        move = random.randint(0,8)
 
-    total_x = rect.width
-    total_y = rect.height
-    grid_pos_x = rect.x
-    grid_pos_y = rect.y
-    
-    line_width = 1
-    square_size = int(rect.width/num_x)
-    line_color = pg.Color("#000000")
+        if random.random() <= self.good_choice_chance:
+            smell_list = list(self.sense.creature_smell.flatten())
+            move = smell_list.index(max(smell_list))
+            if sum(smell_list) < 100:
+                move = random.randint(0,8)
 
-    for i in range(num_y + 1):
-        pg.draw.rect(
-                    surface,
-                    line_color,
-                    pg.Rect(
-                        grid_pos_x,
-                        grid_pos_y, 
-                        1, 
-                        total_y)
-                )
-        grid_pos_x += square_size
-        if num_x == 3 and i == 2:
-            grid_pos_x += 1
-
-    grid_pos_x = rect.x
-
-    for i in range(num_x + 1):
-        pg.draw.rect(
-                    surface,
-                    line_color,
-                    pg.Rect(
-                        grid_pos_x,
-                        grid_pos_y, 
-                        total_x, 
-                        1)
-                )
-        grid_pos_y += square_size
-        if num_y == 3 and i == 2:
-            grid_pos_y += 1
-
-
-    # grid_pos_y = self.padding + self.grid_padding
-    
-    # for i in range(self.width + 1):
-    #     pg.draw.rect(
-    #                 surface,
-    #                 self.line_color,
-    #                 pg.Rect(
-    #                     self.padding + self.grid_padding,
-    #                     grid_pos_y, 
-    #                     total_x,
-    #                     self.padding
-    #                     )
-    #             )
-    #     grid_pos_y += self.square_size + self.padding
-
+        return move
 
 class AgentSense:
     def __init__(self):
-        self.sm_font = pg.font.Font(path.join(ABS_PATH,"Retron2000.ttf"), 11)
+        self.sm_font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 11)
 
         self.sight_dist_from_agent = 2
         self.smell_dist_from_agent = 1
@@ -477,28 +477,6 @@ class AgentSense:
 
     def update_smell(self,x,y,grid,agents,plants):
         self.apply_smell_to_array()
-        
-class EvilAgent(Agent):
-    def __init__(self,x=None,y=None):
-        self.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_evil")
-        super().__init__(x,y,self.raw_img_path)
-        self.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
-        self.type = 'evil'
-        self.good_choice_chance = DEFAULT_EVIL_INTELLIGENCE
-        self.sense.type = 'evil'
-        self.max_energy = MAX_ENERGY * 2
-        self.energy = self.max_energy
-    def choose_movement(self):
-
-        move = random.randint(0,8)
-
-        if random.random() <= self.good_choice_chance:
-            smell_list = list(self.sense.creature_smell.flatten())
-            move = smell_list.index(max(smell_list))
-            if sum(smell_list) < 100:
-                move = random.randint(0,8)
-
-        return move
 
 class Grid:
     def __init__(self,width,height):
@@ -686,7 +664,7 @@ class GameManager:
         self.plants = []
         
         self.addAgent()
-        self.font = pg.font.Font(path.join(ABS_PATH,"Retron2000.ttf"), 25)
+        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 25)
 
         self.agents[0].setType("main")
         self.main_agent = self.agents[0]
@@ -808,23 +786,10 @@ class GameManager:
         for plant in self.plants:
             self.grid.occupied_grid[plant.x][plant.y] = 1
 
-
 # All simple mouse does is pick a random direction, and moves there.
 # Quite senseless, if you ask me.
 def simple_mouse():
     return random.choice(range(0,4))
-
-# Decides wether or not to use the corners of the player sensory matrix
-# when selecting a movement path. In its current state, the mouse can get
-# stuck in a rut when this is true when multiple pieces of food are in play. 
-# You can try to improve it, if you'd like.
-
-# Do you think your RL model will make better use of the corners, or
-# do you think it will rely on the cardinal directions that it can use
-# for movement?
-
-USE_DIAGONAL_SCENT = False
-
 
 # The smart mouse uses its nose to find food. It does this by checking
 # which path has the greatest amount of food smells, and going in that
@@ -843,5 +808,3 @@ def smart_mouse(scent_matrix):
     move_choice = random.choice(indexes)
     return move_choice
     # return movement_array.index(max(movement_array))
-
-
