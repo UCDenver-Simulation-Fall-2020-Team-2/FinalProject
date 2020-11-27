@@ -225,6 +225,7 @@ class Agent(GameObject):
         self.sense.id = self.id
         self.good_choice_chance = DEFAULT_INTELLIGENCE
         self.score = 0
+        self.age = 0
         
     def consume(self,energy):
         self.energy += energy
@@ -756,14 +757,16 @@ class GameManager:
                         else:
                             self.plants.remove(plant)
                             self.addPlant()         
-                            
-                for target_agent in self.agents:
-                    if target_agent.pregnant == -1 and target_agent.alive:
-                        if agent.x == target_agent.x and agent.y == target_agent.y:
-                            target_agent.pregnant = 0
-                            target_agent.raw_img_path = path.join(ABS_PATH,"art_assets","agent_faces","agent_faces_procreation")
-                            target_agent.calc_img_path(target_agent.raw_img_path)
-                            target_agent.loadImg(target_agent.img_path)
+                
+                if agent.age >= AGE_OF_CONSENT:
+                    for target_agent in self.agents:
+                        if target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT:
+                            if agent.x == target_agent.x and agent.y == target_agent.y:
+                                target_agent.pregnant = 0
+                                target_agent.raw_img_path = path.join(ABS_PATH,"art_assets","agent_faces","agent_faces_procreation")
+                                target_agent.calc_img_path(target_agent.raw_img_path)
+                                target_agent.loadImg(target_agent.img_path)
+                                
         else:
             for target_agent in self.agents:
                 if target_agent.type != ObjectType.EVIL:
@@ -794,7 +797,7 @@ class GameManager:
             baby.sense.update(baby.x, baby.y, self.grid, self.agents,self.plants)
         
         agent.sense.update(agent.x,agent.y,self.grid,self.agents,self.plants)
-
+        agent.age += 1
 
     def logicTick(self,player_move=None):
         random.shuffle(self.plants)

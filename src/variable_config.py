@@ -75,3 +75,6 @@ EAT_PLANT_INSTANT = True
 
 # Indicates how much food needs to be eaten by the agent after it is pregnant
 PREGNANCY_FOOD_GOAL = 5
+
+# Indicates how old an agent must be before they're able to become pregnant &/or procreate
+AGE_OF_CONSENT = 10
