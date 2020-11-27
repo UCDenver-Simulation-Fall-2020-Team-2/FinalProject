@@ -70,6 +70,8 @@ DEFAULT_INTELLIGENCE = 0.2
 # Same as above, fut only applies to evil agents
 DEFAULT_EVIL_INTELLIGENCE = 0.5
 
-
 # Indicates whether or not it takes time to consume a plant
 EAT_PLANT_INSTANT = True
+
+# Indicates how much food needs to be eaten by the agent after it is pregnant
+PREGNANCY_FOOD_GOAL = 5

@@ -18,6 +18,16 @@ from copy import deepcopy
 # Get the current path of the python file. Used to load a font resource.
 ABS_PATH = path.dirname(path.realpath(__file__))
 
+EXCEPTION_CAUGHT = False
+
+class ObjectType(Enum):
+    PLANT = 0
+    SELECTED = 1
+    EVIL = 2
+    NEUTRAL = 3
+    PREGNANT = 4
+    BABY = 5
+    
 def fast_dist(x1,y1,x2,y2):
     return np.linalg.norm(np.array((x1,y1))-np.array((x2,y2)))
 
@@ -199,6 +209,8 @@ class Agent(GameObject):
     def __init__(self,x=None,y=None,raw_img_path=None):
         if raw_img_path is None:
             self.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_neutral")
+        else:
+            self.raw_img_path = raw_img_path
         super().__init__(x,y,self.raw_img_path)
         self.sense = AgentSense()
         self.movement_choice = 4
@@ -207,12 +219,13 @@ class Agent(GameObject):
         self.health = MAX_HEALTH
         self.score = 0
         self.alive = True
-        self.type = 'neutral'
+        self.type = ObjectType.NEUTRAL
+        self.pregnant = -1
         self.id = random.randint(0,10000000)
         self.sense.id = self.id
         self.good_choice_chance = DEFAULT_INTELLIGENCE
         self.score = 0
-
+        
     def consume(self,energy):
         self.energy += energy
         if self.energy > self.max_energy:
@@ -232,7 +245,7 @@ class Agent(GameObject):
         if self.energy <= 0 or self.health <= 0:
             self.die()
 
-        if self.type == 'main' and self.alive:
+        if self.type == ObjectType.SELECTED and self.alive:
             self.heal()
 
     def choose_movement(self):
@@ -262,13 +275,13 @@ class Agent(GameObject):
         self.calc_img_path(self.raw_img_path)
         self.loadImg(self.img_path)
         blue = 0
-        if self.type == 'evil':
+        if self.type == ObjectType.EVIL:
             blue = 255
         self.img.fill(pg.Color(255,0,blue,1),special_flags=pg.BLEND_MIN)
         self.alive = 0
 
     def setType(self,new_type):
-        if new_type == "main":
+        if new_type == ObjectType.SELECTED:
             self.type = new_type
             self.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_main")
             self.calc_img_path(self.raw_img_path)
@@ -333,7 +346,7 @@ class AgentSense:
         self.smell_rects = []
 
 
-        self.type = "neutral"
+        self.type = ObjectType.NEUTRAL
         
         for i in range(4):
             sight_rect = pg.Rect(
@@ -423,7 +436,7 @@ class AgentSense:
                 if grid.checkValidTile(x_new,y_new):
                     for agent in agents:
                         if agent.id != self.id:
-                            if not (self.type == 'evil' and agent.type == "evil"):
+                            if not (self.type == ObjectType.EVIL and agent.type == ObjectType.EVIL):
                                 self.creature_smell[grid_loc_y,grid_loc_x] += (0.5/(fast_dist(x_new,y_new,agent.x,agent.y)+1))*255
 
                     for plant in plants:
@@ -456,7 +469,7 @@ class AgentSense:
                     for agent in agents:
                         if agent.x == x_new and agent.y == y_new:
                             self.creature_sight[grid_loc_y,grid_loc_x] = 255
-                            if agent.type == "evil":
+                            if agent.type == ObjectType.EVIL:
                                 self.danger_sight[grid_loc_y,grid_loc_x] = 255
 
                     for plant in plants:
@@ -563,7 +576,7 @@ class Grid:
                     found = True
             return x,y 
         else:
-            empty_left = NUM_SPACES-len(np.count_nonzero(self.occupied_grid))
+            empty_left = NUM_SPACES-len(occupied_spaces)
             choice = random.randint(0,empty_left)
             count = 0
             for i in range(self.height):
@@ -666,13 +679,15 @@ class GameManager:
         self.addAgent()
         self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 25)
 
-        self.agents[0].setType("main")
+        self.agents[0].setType(ObjectType.SELECTED)
         self.main_agent = self.agents[0]
         for i in range(NUM_EVIL):
             self.addEvilAgent()
         for i in range(NUM_AGENTS-1):
             self.addAgent()
     
+        #self.addAgent(ObjectType.PROCREATION, path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_procreation"))
+        
         for i in range(MAX_NUM_FOOD_ON_GRID):
             self.addPlant()
         
@@ -706,6 +721,8 @@ class GameManager:
             move = agent.choose_movement()
 
         offset_x, offset_y, difficulty = dir2offset(move)
+        old_x = agent.x
+        old_y = agent.y
         new_x = agent.x + offset_x
         new_y = agent.y + offset_y
         
@@ -720,29 +737,39 @@ class GameManager:
 
             agent.move(new_x,new_y,difficulty)
 
-        if agent.type != 'evil':
+        if agent.type != ObjectType.EVIL:
             for plant in self.plants:
                 if agent.x == plant.x and agent.y == plant.y:
-                        if EAT_PLANT_INSTANT:
-                            agent.consume(plant.energy)
-                            self.plants.remove(plant)
-                            self.addPlant()
-
+                    if EAT_PLANT_INSTANT:
+                        agent.consume(plant.energy)
+                        self.plants.remove(plant)
+                        self.addPlant()
+                        if agent.pregnant >= 0:
+                            agent.pregnant += 1
+                    else:
+                        agent.consume(10)
+                        if agent.pregnant >= 0:
+                            agent.pregnant += 1
+                            
+                        if plant.energy > 10:
+                            plant.deplete(10)
                         else:
-                            agent.consume(10)
-                            if plant.energy > 10:
-                                plant.deplete(10)
-                            else:
-                                self.plants.remove(plant)
-                                self.addPlant()
-
+                            self.plants.remove(plant)
+                            self.addPlant()         
+                            
+                for target_agent in self.agents:
+                    if target_agent.pregnant == -1 and target_agent.alive:
+                        if agent.x == target_agent.x and agent.y == target_agent.y:
+                            target_agent.pregnant = 0
+                            target_agent.raw_img_path = path.join(ABS_PATH,"art_assets","agent_faces","agent_faces_procreation")
+                            target_agent.calc_img_path(target_agent.raw_img_path)
+                            target_agent.loadImg(target_agent.img_path)
         else:
             for target_agent in self.agents:
-                if target_agent.type != 'evil':
+                if target_agent.type != ObjectType.EVIL:
                     if target_agent.alive:
                         if agent.x == target_agent.x and agent.y == target_agent.y:
-                            target_agent.take_damage(10)
-                            
+                            target_agent.take_damage(10)     
                     else:
                         if target_agent.energy > 10:
                             agent.consume(10)
@@ -751,6 +778,21 @@ class GameManager:
                             agent.consume(target_agent.energy)
                             self.agents.remove(target_agent)
 
+        if agent.alive and agent.pregnant >= PREGNANCY_FOOD_GOAL:
+            agent.pregnant = -1
+            if agent.type == ObjectType.EVIL:
+                agent.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_evil")
+            elif agent.type == ObjectType.NEUTRAL:
+                agent.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_neutral")
+            elif agent.type == ObjectType.SELECTED:
+                agent.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_main")
+            agent.calc_img_path(agent.raw_img_path)
+            agent.loadImg(agent.img_path)
+            baby_x, baby_y = self.grid.calcRandNearby(agent.x, agent.y, 1)
+            baby = Agent(baby_x, baby_y)
+            self.agents.append(baby)
+            baby.sense.update(baby.x, baby.y, self.grid, self.agents,self.plants)
+        
         agent.sense.update(agent.x,agent.y,self.grid,self.agents,self.plants)
 
 
@@ -760,10 +802,10 @@ class GameManager:
         self.plantTick()
         
         for agent in self.agents:
-            if agent.type != "main":
+            if agent.type != ObjectType.SELECTED:
                 self.agentTick(agent)
         for agent in self.agents:
-            if agent.type == "main":
+            if agent.type == ObjectType.SELECTED:
                 self.agentTick(agent,player_move)
         
     def addPlant(self):
@@ -771,9 +813,11 @@ class GameManager:
         plant = Plant(x,y)
         self.plants.append(plant)
 
-    def addAgent(self):
+    def addAgent(self,agent_type=None,image_path=None):
         x, y = self.grid.randEmptySpace()
-        agent = Agent(x,y)
+        agent = Agent(x,y,image_path)
+        if agent_type is not None:
+            agent.type = agent_type
         self.agents.append(agent)
 
     def addEvilAgent(self):
@@ -784,7 +828,9 @@ class GameManager:
     def setOccupiedGrid():
         self.grid.occupied_grid = np.zeros((GAME_GRID_WIDTH,GAME_GRID_HEIGHT))
         for plant in self.plants:
-            self.grid.occupied_grid[plant.x][plant.y] = 1
+            self.grid.occupied_grid[plant.x][plant.y] = ObjectType.PLANT
+        for agent in self.agents:
+            self.grid.occupied_grid[agent.x][agent.y] = agent.type
 
 # All simple mouse does is pick a random direction, and moves there.
 # Quite senseless, if you ask me.
