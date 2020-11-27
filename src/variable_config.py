@@ -77,7 +77,7 @@ EAT_PLANT_INSTANT = True
 PREGNANCY_FOOD_GOAL = 20
 
 # Indicates how old an agent must be before they're able to become pregnant &/or procreate
-AGE_OF_CONSENT = 1
+AGE_OF_CONSENT = 100
 
 # Indicates period of time between pregnancies/procreation
 PREGNANCY_COOLDOWN = 100
