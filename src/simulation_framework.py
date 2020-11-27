@@ -765,16 +765,16 @@ class GameManager:
                             self.plants.remove(plant)
                             self.addPlant()         
                 
-                if agent.age >= AGE_OF_CONSENT and agent.pregnant == -1:
-                    for target_agent in self.agents:
-                        if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT and (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
-                            if agent.x == target_agent.x and agent.y == target_agent.y:
-                                target_agent.pregnant = 0
-                                target_agent.raw_img_path = path.join(ABS_PATH,"art_assets","agent_faces","agent_faces_procreation")
-                                target_agent.calc_img_path(target_agent.raw_img_path)
-                                target_agent.loadImg(target_agent.img_path)
-                                if (target_agent.type == ObjectType.EVIL):
-                                    target_agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
+            if agent.age >= AGE_OF_CONSENT and agent.pregnant == -1:
+                for target_agent in self.agents:
+                    if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT and (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
+                        if agent.x == target_agent.x and agent.y == target_agent.y:
+                            target_agent.pregnant = 0
+                            target_agent.raw_img_path = path.join(ABS_PATH,"art_assets","agent_faces","agent_faces_procreation")
+                            target_agent.calc_img_path(target_agent.raw_img_path)
+                            target_agent.loadImg(target_agent.img_path)
+                            if (target_agent.type == ObjectType.EVIL):
+                                target_agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
                                 
         else:
             for target_agent in self.agents:
