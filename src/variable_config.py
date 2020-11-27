@@ -81,3 +81,4 @@ AGE_OF_CONSENT = 100
 
 # Indicates period of time between pregnancies/procreation
 PREGNANCY_COOLDOWN = 100
+

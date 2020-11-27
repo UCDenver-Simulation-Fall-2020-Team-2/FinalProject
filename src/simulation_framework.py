@@ -121,6 +121,7 @@ class GameObject:
         self.y = y
         self.stage = stage
         self.alive = True
+        self.raw_img_path = raw_img_path
         self.calc_img_path(raw_img_path)
         self.loadImg(self.img_path)
         self.energy = 0    
@@ -209,8 +210,9 @@ class Plant(GameObject):
 class Agent(GameObject):
     def __init__(self,x=None,y=None,raw_img_path=None):
         global AGENT_ID
+        self.sprite_path = path.join(ABS_PATH, "art_assets","agent_faces")
         if raw_img_path is None:
-            self.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_neutral")
+            self.raw_img_path = path.join(self.sprite_path,"agent_faces_neutral")
         else:
             self.raw_img_path = raw_img_path
         super().__init__(x,y,self.raw_img_path)
@@ -231,7 +233,45 @@ class Agent(GameObject):
         self.age = 0
         self.last_pregnant_age = 0
         self.selected = False
+    
+    def choose_sprite(self):
+        if self.raw_img_path:
+            old_raw_path = self.raw_img_path
+        else:
+            old_raw_path = None
+        is_baby = self.age < AGE_OF_CONSENT
         
+        if self.type == ObjectType.EVIL:
+            if self.alive:
+                self.raw_img_path = path.join(self.sprite_path,"agent_faces_evil")
+
+                if self.pregnant > 0:
+                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_procreation_evil")
+                elif is_baby:
+                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_baby_evil")
+            else:
+                self.raw_img_path = path.join(self.sprite_path,"agent_faces_dead")
+                if is_baby:
+                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_baby_dead")
+        else:
+            self.raw_img_path = path.join(self.sprite_path,"agent_faces_neutral")
+
+            if self.alive:
+                if self.pregnant > 0:
+                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_procreation")
+                elif is_baby:
+                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_baby")
+            else:
+                self.raw_img_path = path.join(self.sprite_path,"agent_faces_dead")
+                if is_baby:
+                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_baby_dead")
+        
+
+
+        if old_raw_path != self.raw_img_path:
+            self.calc_img_path(self.raw_img_path)
+            self.loadImg(self.img_path)
+
     def consume(self,energy):
         self.energy += energy
         if self.energy > self.max_energy:
@@ -256,6 +296,10 @@ class Agent(GameObject):
 
         if self.selected and self.alive:
             self.heal()
+        if self.type == ObjectType.EVIL:
+            print(f"EVIL: {self.age}")
+        else:
+            print(f"GOOD: {self.age}")
 
     def choose_movement(self):
         move = random.randint(0,8)
@@ -280,9 +324,9 @@ class Agent(GameObject):
             self.calc_color()
 
     def die(self):
-        self.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_dead")
-        self.calc_img_path(self.raw_img_path)
-        self.loadImg(self.img_path)
+        # self.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_dead")
+        # self.calc_img_path(self.raw_img_path)
+        # self.loadImg(self.img_path)
         blue = 0
         if self.type == ObjectType.EVIL:
             blue = 255
@@ -300,6 +344,7 @@ class Agent(GameObject):
         red_color =  int(255-(255 * (self.health/MAX_HEALTH)))
         if red_color < 0:
             red_color = 0
+
         self.img.fill(pg.Color(255,255-red_color,255-red_color,1),special_flags=pg.BLEND_MIN)
 
 
@@ -311,24 +356,26 @@ class Agent(GameObject):
             self.die()
     
     def draw(self,x,y,surface):
+        self.choose_sprite()
+        if self.type == ObjectType.EVIL:
+            self.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
         surface.blit(self.img, self.img_rect.move(x,y))
         if self.selected:
             self.sense.draw(surface)
 
 class EvilAgent(Agent):
     def __init__(self,x=None,y=None):
-        self.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_evil")
+        self.raw_img_path = None
         super().__init__(x,y,self.raw_img_path)
-        self.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
+        self.choose_sprite()
         self.type = ObjectType.EVIL
         self.good_choice_chance = DEFAULT_EVIL_INTELLIGENCE
         self.sense.type = ObjectType.EVIL
         self.max_energy = MAX_ENERGY * 2
         self.energy = self.max_energy
+    
     def choose_movement(self):
-
         move = random.randint(0,8)
-
         if random.random() <= self.good_choice_chance:
             smell_list = list(self.sense.creature_smell.flatten())
             move = smell_list.index(max(smell_list))
@@ -770,9 +817,6 @@ class GameManager:
                         if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT and (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
                             if agent.x == target_agent.x and agent.y == target_agent.y:
                                 target_agent.pregnant = 0
-                                target_agent.raw_img_path = path.join(ABS_PATH,"art_assets","agent_faces","agent_faces_procreation")
-                                target_agent.calc_img_path(target_agent.raw_img_path)
-                                target_agent.loadImg(target_agent.img_path)
                                 if (target_agent.type == ObjectType.EVIL):
                                     target_agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
                                 
@@ -805,12 +849,6 @@ class GameManager:
         if agent.alive and agent.pregnant >= PREGNANCY_FOOD_GOAL:
             agent.pregnant = -1
             agent.last_pregnant_age = agent.age
-            if agent.type == ObjectType.EVIL:
-                agent.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_evil")
-            elif agent.type == ObjectType.NEUTRAL:
-                agent.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_neutral")
-            agent.calc_img_path(agent.raw_img_path)
-            agent.loadImg(agent.img_path)
             if (agent.type == ObjectType.EVIL):
                 agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
             baby_x, baby_y = self.grid.calcRandNearby(agent.x, agent.y, 1)

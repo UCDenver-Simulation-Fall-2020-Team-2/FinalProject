@@ -8,7 +8,7 @@ import pygame as pg
 SKIP_FRAMES = 0
 
 # Number of frames to draw per second.
-FRAMES_PER_SECOND = 2
+FRAMES_PER_SECOND = 20
 
 pg.init()
 
