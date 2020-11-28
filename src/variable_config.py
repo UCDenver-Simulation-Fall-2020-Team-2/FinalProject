@@ -12,6 +12,8 @@ SKIP_SELECTION = 0 # Index corresponding to available option from SKIP_LIST
 DEFAULT_SKIP_SELECTION = 4
 
 
+SIMULATION_RUNNER_ALWAYS_HAVE_SELECTED_AGENT = True
+
 # Window width and height
 WINDOW_WIDTH = 500
 WINDOW_HEIGHT = 700
@@ -104,7 +106,6 @@ SIMULATION_RUNNER_SIGNAL_REDRAW = False
 SIMULATION_RUNNER_EXCEPTION_CAUGHT = False
 
 selected_id = None
-current_agent_id = None
 
 clock = pg.time.Clock()
 delta_time = 0

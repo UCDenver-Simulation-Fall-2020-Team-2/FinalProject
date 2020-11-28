@@ -58,19 +58,11 @@ def globalDraw():
     global SIMULATION_RUNNER_TERMINATING
     global delta_time
     global selected_id 
-    global current_agent_id
     
     check_events()
     
     game_window.fill(BACKGROUND_COLOR)
-    desired_id = game_manager.selectByID(selected_id)
-    if desired_id is None:
-        selected_id = current_agent_id
-        latest_selected_id = game_manager.selectByID(selected_id)
-        if latest_selected_id is None:
-            selected_id = None
-            current_agent_id = None
-            game_manager.selectByID(selected_id)
+    selected_id = game_manager.selectByID(selected_id)
    
     simulation_runner_message = None
     if SIMULATION_RUNNER_TERMINATING:
@@ -91,11 +83,7 @@ def globalDraw():
         if SIMULATION_RUNNER_SIGNAL_REDRAW:
             SIMULATION_RUNNER_SIGNAL_REDRAW = False
             game_window.fill(BACKGROUND_COLOR)
-            desired_id = game_manager.selectByID(selected_id)
-            if desired_id is None:
-                latest_selected_id = game_manager.selectByID(current_agent_id)
-                if latest_selected_id is None:
-                    game_manager.selectByID(None)  
+            selected_id = game_manager.selectByID(selected_id)
             simulation_runner_message = None
             if SIMULATION_RUNNER_TERMINATING:
                 simulation_runner_message = f"ENDING SIMULATION [waiting on end of tick]..."
@@ -119,15 +107,14 @@ def progressState():
     global SIMULATION_RUNNER_PAUSE_LOCK
     global game_manager
     global delta_time
+    global selected_id
     
     delta_time = pg.time.get_ticks()
     
     if GLOBAL_TICK > 0 and TURN_VIEW:
-        current_agent_id = game_manager.logicTick(draw_func=globalDraw)
-        selected_agent_id = current_agent_id
+        selected_id = game_manager.logicTick(draw_func=globalDraw)
     else:
-        current_agent_id = game_manager.logicTick()
-        selected_agent_id = current_agent_id
+        selected_id = game_manager.logicTick()
     
     GLOBAL_TICK += 1     
     
