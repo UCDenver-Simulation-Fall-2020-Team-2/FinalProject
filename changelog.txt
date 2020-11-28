@@ -1,0 +1,11 @@
+version 1.5.0:
+    Bugfixes:
+        Frame-skip parameter now works as intended.
+        Major performance increases across the board.
+        Scipy dependency removed
+        
+    New Features:
+        Player and food now have images
+        Scent range has been added
+        (TODO)Player can now move in any direction
+        (TODO)Multiple players can exist on the grid at once
