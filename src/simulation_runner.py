@@ -24,9 +24,6 @@ TURN_VIEW = True
 pg.init()
 game_manager = None
 
-selected_id = None
-current_agent_id = None
-
 game_window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 game_window.fill(BACKGROUND_COLOR)
 pg.display.set_caption('Simulation')
@@ -51,15 +48,20 @@ def globalDraw():
     global SIMULATION_RUNNER_SIGNAL_REDRAW
     global SIMULATION_RUNNER_TERMINATING
     global delta_time
+    global selected_id 
+    global current_agent_id
     
     check_events()
     
     game_window.fill(BACKGROUND_COLOR)
     desired_id = game_manager.selectByID(selected_id)
     if desired_id is None:
-        latest_selected_id = game_manager.selectByID(current_agent_id)
+        selected_id = current_agent_id
+        latest_selected_id = game_manager.selectByID(selected_id)
         if latest_selected_id is None:
-            game_manager.selectByID(None)
+            selected_id = None
+            current_agent_id = None
+            game_manager.selectByID(selected_id)
    
     simulation_runner_message = None
     if SIMULATION_RUNNER_TERMINATING:
@@ -110,10 +112,13 @@ def progressState():
     global delta_time
     
     delta_time = pg.time.get_ticks()
+    
     if GLOBAL_TICK > 0 and TURN_VIEW:
         current_agent_id = game_manager.logicTick(draw_func=globalDraw)
+        selected_agent_id = current_agent_id
     else:
         current_agent_id = game_manager.logicTick()
+        selected_agent_id = current_agent_id
     
     GLOBAL_TICK += 1     
     
@@ -186,8 +191,8 @@ def check_events():
             SIMULATION_RUNNER_TERMINATING = True
             SIMULATION_RUNNER_SIGNAL_REDRAW = True
             print("Waiting for tick to finish before closing...")
-        if event.type == pg.MOUSEBUTTONUP:
-            #print("Received MBUTTONUP event!")
+        if event.type == pg.MOUSEBUTTONDOWN:
+            #print("Received MBUTTONDOWN event!")
             mpos = pg.mouse.get_pos()
             selected_id = game_manager.selectFromXY(mpos[0], mpos[1])
             SIMULATION_RUNNER_SIGNAL_REDRAW = True
