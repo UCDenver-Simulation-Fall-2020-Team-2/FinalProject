@@ -989,7 +989,7 @@ class GameManager:
     def __setstate__(self, state):
         #print("Within setstate of GameManager")
         self.__dict__ = state
-        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 25)
+        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 12)
     
     def selectFromXY(self,x,y):
         calc_x, calc_y = self.grid.calcTileFromXY(x,y)
@@ -1000,15 +1000,28 @@ class GameManager:
                     selected_id = agent.id
         if selected_id != None:
             self.selectByID(selected_id)
+        return selected_id
 
     def selectByID(self,sel_id):
+        selected_agent = False
+        decided_id = sel_id
+        
+        if decided_id is None and self.main_agent is not None:
+            decided_id = self.main_agent.id
+            
         for agent in self.agents:
-            if agent.id == sel_id:
+            if agent.id == decided_id:
+                selected_agent = True
                 agent.select()
             else:
                 agent.selected = False
+                
+        if selected_agent:
+            return decided_id
+        else:
+            return None
 
-    def draw(self,game_window):
+    def draw(self,game_window,paused=False,pause_lock=False,terminating=False):
         self.grid.draw(game_window)
         # Draw plants
         for plant in self.plants:
@@ -1042,7 +1055,15 @@ class GameManager:
         
         game_window.blit(self.font.render(f"{stats1}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+80))
         game_window.blit(self.font.render(f"{stats2}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+100))
-
+        if terminating:
+            game_window.blit(self.font.render(f"ENDING SIMULATION [waiting on end of tick]...", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
+        elif paused:
+            #print("The simulation is paused!")
+            if pause_lock:
+                game_window.blit(self.font.render(f"PAUSING (waiting on end of tick)...", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
+            else:
+                game_window.blit(self.font.render(f"PAUSED", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
+                
     def plantTick(self):
         for plant in self.plants:
             plant.tick()
@@ -1160,7 +1181,7 @@ class GameManager:
         agent.age += 1
 
 
-    def logicTick(self,player_move=None,draw_func=None):
+    def logicTick(self,player_move=None,draw_func=None):        
         random.shuffle(self.plants)
         self.plantTick()
 
@@ -1183,6 +1204,8 @@ class GameManager:
                                 draw_func()
                         run_ids.append(agent.id)
 
+        # Returns the ID for bookkeeping from the simulation runner/driver program
+        return self.main_agent.id        
 
     def addPlant(self):
         x, y = self.grid.randEmptySpace()

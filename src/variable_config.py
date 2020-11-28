@@ -1,4 +1,10 @@
+import pygame as pg
 from pygame import Color
+
+# Simulation FPS
+FPS_LIST = [1,2,5,10,50,100,150]
+FPS_SELECTION = 0 # Index corresponding to available option from FPS_LIST
+
 # Window width and height
 WINDOW_WIDTH = 500
 WINDOW_HEIGHT = 700
@@ -83,3 +89,11 @@ AGE_OF_CONSENT = 100
 PREGNANCY_COOLDOWN = 100
 
 VERBOSE = True
+
+SIMULATION_RUNNER_PAUSED = False
+SIMULATION_RUNNER_PAUSE_LOCK = False
+SIMULATION_RUNNER_TERMINATING = False
+SIMULATION_RUNNER_SIGNAL_REDRAW = False
+
+clock = pg.time.Clock()
+delta_time = 0
