@@ -14,7 +14,7 @@ MAX_GAME_STATES = 200
 
 ARR_GAME_STATES = []
 
-GAME_STATE_INDEX = 0
+GAME_STATE_INDEX = -1 # Needs to execute one logic tick to create a legitimate game state for the initial GameManager
 
 GLOBAL_TICK = 0
 
@@ -32,12 +32,12 @@ def GameLoop():
     global GAME_STATE_INDEX
     
     paused = False
-
+    restore = True
+    
     clock = pg.time.Clock()
     run_game_loop = True
     
     game_manager = GameManager(GAME_GRID_WIDTH, GAME_GRID_HEIGHT)
-    ARR_GAME_STATES.append((GLOBAL_TICK, GameState(game_manager)))
     
     while run_game_loop:
         for event in pg.event.get():
@@ -45,16 +45,19 @@ def GameLoop():
                 if event.key == pg.K_ESCAPE:
                     run_game_loop = False
                 if event.key == pg.K_p:
+                    restore = True
                     paused = not paused
                 if event.key == pg.K_RIGHT and paused:
                     if (GAME_STATE_INDEX < len(ARR_GAME_STATES)-1):
                         GAME_STATE_INDEX += 1
+                        restore = True
                     elif (GAME_STATE_INDEX > len(ARR_GAME_STATES)-1):
                         print("ERROR: GAME_STATE_INDEX OOB WITH K_RIGHT")
                         exit(9)
                 if event.key == pg.K_LEFT and paused:
                     if (GAME_STATE_INDEX > 0):
                         GAME_STATE_INDEX -= 1
+                        restore = True
             # Check to see if the user has requested that the game end.
             if event.type == pg.QUIT:
                 run_game_loop = False
@@ -77,15 +80,18 @@ def GameLoop():
                         ARR_GAME_STATES.pop(0)
                     ARR_GAME_STATES.append((GLOBAL_TICK, GameState(game_manager)))
         else:
-            restored_state = ARR_GAME_STATES[GAME_STATE_INDEX][1]
-            game_manager = restored_state.restore()
+            if restore and GAME_STATE_INDEX < len(ARR_GAME_STATES)-1:
+                restore = False
+                restored_state = ARR_GAME_STATES[GAME_STATE_INDEX][1]
+                game_manager = restored_state.restore()
             #print(f"Restoring state: {restored_state}")
             #print(f"Game manager: {game_manager}")
             
+        print(f"Index: {GAME_STATE_INDEX}")
         game_window.fill(BACKGROUND_COLOR)
         game_manager.draw(game_window)
         pg.display.flip()        
-        print(f"Index: {GAME_STATE_INDEX}")
+        
         delta_time = clock.tick(FRAMES_PER_SECOND)
     
             

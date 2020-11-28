@@ -11,8 +11,7 @@ from enum import Enum
 from math import sqrt
 import traceback
 import pickle
-import dill
-
+#import dill
 
 #random.seed(99)
 
@@ -110,8 +109,8 @@ class GameState():
     def __init__(self, in_game_manager):
         self.pickled_game_manager = None
         try:
-            dill.detect.trace(False)
-            self.pickled_game_manager = dill.dumps(in_game_manager)
+            #dill.detect.trace(False)
+            self.pickled_game_manager = pickle.dumps(in_game_manager)
         except Exception as e:
             traceback.print_exc()
             sys.exit(9)
@@ -119,7 +118,7 @@ class GameState():
     def restore(self):
         game_manager = None
         try:
-           game_manager = dill.loads(self.pickled_game_manager)
+           game_manager = pickle.loads(self.pickled_game_manager)
         except Exception as e:
             traceback.print_exc()
             sys.exit(9)
