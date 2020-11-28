@@ -370,9 +370,9 @@ class Agent(GameObject):
     def calc_color(self):
         self.loadImg(self.img_path)
         red_color =  int(255-(255 * (self.health/MAX_HEALTH)))
-        if red_color < 0:
+        if red_color < 0 or self.health < 0:
             red_color = 0
-
+        
         self.img.fill(pg.Color(255,255-red_color,255-red_color,1),special_flags=pg.BLEND_MIN)
 
     def take_damage(self, damage):

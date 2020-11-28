@@ -206,7 +206,7 @@ def GameLoop():
     
     while run_game_loop:
         check_events()
-        if not SIMULATION_RUNNER_PAUSED:
+        if not SIMULATION_RUNNER_PAUSED and not SIMULATION_RUNNER_EXCEPTION_CAUGHT:
             for i in range(SKIP_FRAMES + 1):
                 if (GAME_STATE_INDEX >= 0 and GAME_STATE_INDEX <= len(ARR_GAME_STATES)-1):
                     rewindState()
