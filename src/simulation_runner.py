@@ -80,7 +80,7 @@ def GameLoop():
                         ARR_GAME_STATES.pop(0)
                     ARR_GAME_STATES.append((GLOBAL_TICK, GameState(game_manager)))
         else:
-            if restore and GAME_STATE_INDEX < len(ARR_GAME_STATES)-1:
+            if restore and GAME_STATE_INDEX <= len(ARR_GAME_STATES)-1:
                 restore = False
                 restored_state = ARR_GAME_STATES[GAME_STATE_INDEX][1]
                 game_manager = restored_state.restore()
