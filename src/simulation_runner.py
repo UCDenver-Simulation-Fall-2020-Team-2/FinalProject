@@ -49,6 +49,7 @@ def globalDraw():
     global SIMULATION_RUNNER_PAUSED
     global SIMULATION_RUNNER_PAUSE_LOCK
     global SIMULATION_RUNNER_SIGNAL_REDRAW
+    global SIMULATION_RUNNER_TERMINATING
     global delta_time
     
     check_events()
@@ -59,23 +60,40 @@ def globalDraw():
         latest_selected_id = game_manager.selectByID(current_agent_id)
         if latest_selected_id is None:
             game_manager.selectByID(None)
-            
-    game_manager.draw(game_window,paused=SIMULATION_RUNNER_PAUSED,pause_lock=SIMULATION_RUNNER_PAUSE_LOCK,terminating=SIMULATION_RUNNER_TERMINATING)
+   
+    simulation_runner_message = None
+    if SIMULATION_RUNNER_TERMINATING:
+        simulation_runner_message = f"ENDING SIMULATION [waiting on end of tick]..."
+    elif SIMULATION_RUNNER_PAUSED:
+        if SIMULATION_RUNNER_PAUSE_LOCK:
+            simulation_runner_message = f"PAUSING (waiting on end of tick)..."
+        else:
+            simulation_runner_message = f"PAUSED"
+        
+    game_manager.draw(game_window,simulation_runner_message=simulation_runner_message)
     pg.display.flip()
     
     diff = pg.time.get_ticks() - delta_time
     #print(f"Initial diff: {diff}")
-    while (diff < 1000/FPS_LIST[FPS_SELECTION]):
+    while (diff < 1000/FPS_LIST[FPS_SELECTION] and ((not SIMULATION_RUNNER_PAUSED) or SIMULATION_RUNNER_PAUSE_LOCK)):
         check_events()
-        if (SIMULATION_RUNNER_PAUSED and not SIMULATION_RUNNER_PAUSE_LOCK) or SIMULATION_RUNNER_SIGNAL_REDRAW:
+        if SIMULATION_RUNNER_SIGNAL_REDRAW:
             SIMULATION_RUNNER_SIGNAL_REDRAW = False
             game_window.fill(BACKGROUND_COLOR)
             desired_id = game_manager.selectByID(selected_id)
             if desired_id is None:
                 latest_selected_id = game_manager.selectByID(current_agent_id)
                 if latest_selected_id is None:
-                    game_manager.selectByID(None)
-            game_manager.draw(game_window,paused=SIMULATION_RUNNER_PAUSED,pause_lock=SIMULATION_RUNNER_PAUSE_LOCK,terminating=SIMULATION_RUNNER_TERMINATING)
+                    game_manager.selectByID(None)  
+            simulation_runner_message = None
+            if SIMULATION_RUNNER_TERMINATING:
+                simulation_runner_message = f"ENDING SIMULATION [waiting on end of tick]..."
+            elif SIMULATION_RUNNER_PAUSED:
+                if SIMULATION_RUNNER_PAUSE_LOCK:
+                    simulation_runner_message = f"PAUSING (waiting on end of tick)..."
+                else:
+                    simulation_runner_message = f"PAUSED"
+            game_manager.draw(game_window,simulation_runner_message=simulation_runner_message)
             pg.display.flip()
             
         diff = pg.time.get_ticks() - delta_time

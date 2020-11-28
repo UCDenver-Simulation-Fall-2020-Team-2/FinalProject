@@ -264,6 +264,7 @@ class Agent(GameObject):
         self.is_pregnant = False
         self.mating_cooldown = 0
         self.mating_cooldown_max = 5
+        
     def __setstate__(self, state):
         self.__dict__ = state
         self.calc_color()
@@ -272,7 +273,7 @@ class Agent(GameObject):
         def finalize_sprite(old_path):    
             if old_path != self.raw_img_path:
                 self.calc_img_path(self.raw_img_path)
-                self.loadImg(self.img_path)
+                self.calc_color()
       
         if self.raw_img_path:
             old_raw_path = self.raw_img_path
@@ -1021,7 +1022,7 @@ class GameManager:
         else:
             return None
 
-    def draw(self,game_window,paused=False,pause_lock=False,terminating=False):
+    def draw(self,game_window,simulation_runner_message=None):
         self.grid.draw(game_window)
         # Draw plants
         for plant in self.plants:
@@ -1055,15 +1056,9 @@ class GameManager:
         
         game_window.blit(self.font.render(f"{stats1}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+80))
         game_window.blit(self.font.render(f"{stats2}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+100))
-        if terminating:
-            game_window.blit(self.font.render(f"ENDING SIMULATION [waiting on end of tick]...", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
-        elif paused:
-            #print("The simulation is paused!")
-            if pause_lock:
-                game_window.blit(self.font.render(f"PAUSING (waiting on end of tick)...", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
-            else:
-                game_window.blit(self.font.render(f"PAUSED", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
-                
+        if simulation_runner_message is not None:
+            game_window.blit(self.font.render(simulation_runner_message, 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
+ 
     def plantTick(self):
         for plant in self.plants:
             plant.tick()

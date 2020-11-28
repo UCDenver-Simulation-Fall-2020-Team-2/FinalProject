@@ -3,7 +3,7 @@ from pygame import Color
 
 # Simulation FPS
 FPS_LIST = [1,2,5,10,50,100,150]
-FPS_SELECTION = 0 # Index corresponding to available option from FPS_LIST
+FPS_SELECTION = 4 # Index corresponding to available option from FPS_LIST
 
 # Window width and height
 WINDOW_WIDTH = 500
