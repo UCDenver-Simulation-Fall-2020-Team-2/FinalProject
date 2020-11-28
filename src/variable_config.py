@@ -2,8 +2,15 @@ import pygame as pg
 from pygame import Color
 
 # Simulation FPS
-FPS_LIST = [1,2,5,10,50,100,150]
-FPS_SELECTION = 5 # Index corresponding to available option from FPS_LIST
+FPS_LIST = [1,2,5,10,60,100,150]
+FPS_SELECTION = 4 # Index corresponding to available option from FPS_LIST
+DEFAULT_FPS_SELECTION = 4
+
+# Simulation Skip Frame Number
+SKIP_LIST = [0,5,10,20]
+SKIP_SELECTION = 0 # Index corresponding to available option from SKIP_LIST
+DEFAULT_SKIP_SELECTION = 4
+
 
 # Window width and height
 WINDOW_WIDTH = 500
@@ -52,7 +59,7 @@ if MAX_NUM_FOOD_ON_GRID <= 1:
 FOOD_PER_ROUND = MAX_NUM_FOOD_ON_GRID * 5
 
 # What is the maximum amount of energy that a player can have?
-MAX_ENERGY = GAME_GRID_WIDTH * 10
+MAX_ENERGY = GAME_GRID_WIDTH * 5
 
 # What is the maximum amount of health that a player can have?
 MAX_HEALTH = 100
@@ -101,3 +108,5 @@ current_agent_id = None
 
 clock = pg.time.Clock()
 delta_time = 0
+
+SKIP_SIGHT = True

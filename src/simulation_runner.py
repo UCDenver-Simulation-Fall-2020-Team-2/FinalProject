@@ -39,6 +39,15 @@ def incFPS():
     if FPS_SELECTION >= len(FPS_LIST):
         FPS_SELECTION = 0
 
+
+def incSkip():
+    global SKIP_SELECTION
+    global SKIP_LIST
+    
+    SKIP_SELECTION += 1
+    if SKIP_SELECTION >= len(SKIP_LIST):
+        SKIP_SELECTION = 0
+
 def globalDraw():
     global game_window
     global game_manager
@@ -159,6 +168,8 @@ def check_events():
                 run_game_loop = False
             if event.key == pg.K_f:
                 incFPS()
+            if event.key == pg.K_t:
+                TURN_VIEW = not TURN_VIEW
             if event.key == pg.K_p and not SIMULATION_RUNNER_PAUSE_LOCK:
                 if not SIMULATION_RUNNER_PAUSED:
                     SIMULATION_RUNNER_PAUSE_LOCK = True
@@ -185,6 +196,9 @@ def check_events():
                 elif (GAME_STATE_INDEX > 0):
                     GAME_STATE_INDEX -= 1
                     restore = True
+
+            if event.key == pg.K_s:
+                incSkip()
         # Check to see if the user has requested that the game end.
         if event.type == pg.QUIT:
             run_game_loop = False
@@ -212,7 +226,7 @@ def GameLoop():
     while run_game_loop:
         check_events()
         if not SIMULATION_RUNNER_PAUSED and not SIMULATION_RUNNER_EXCEPTION_CAUGHT:
-            for i in range(SKIP_FRAMES + 1):
+            for i in range(SKIP_LIST[SKIP_SELECTION] + 1):
                 if (GAME_STATE_INDEX >= 0 and GAME_STATE_INDEX <= len(ARR_GAME_STATES)-1):
                     rewindState()
                 else:
