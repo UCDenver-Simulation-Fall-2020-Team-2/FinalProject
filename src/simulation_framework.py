@@ -210,7 +210,6 @@ class Plant(GameObject):
         self.energy = 10
         self.energy_steps = int(self.max_energy / self.num_stages)
 
-
     def tick(self):
         if random.random() < self.growth_rate:
             self.grow()
@@ -220,7 +219,6 @@ class Plant(GameObject):
             self.stage = new_stage
             self.calc_img_path(self.raw_img_path)
             self.loadImg(self.img_path)
-
 
     def grow(self):
         self.energy += 1
@@ -235,14 +233,16 @@ class Plant(GameObject):
         return i
 
 class Agent(GameObject):
-    def __init__(self,x=None,y=None,raw_img_path=None):
+    def __init__(self,x=None,y=None,raw_img_path=None,parent_1=None,parent_2=None):
         global AGENT_ID
         self.sprite_path = path.join(ABS_PATH, "art_assets","agent_faces")
         if raw_img_path is None:
-            self.raw_img_path = path.join(self.sprite_path,"agent_faces_neutral")
+            self.raw_img_path = path.join(self.sprite_path,"agent_faces")
         else:
             self.raw_img_path = raw_img_path
+
         super().__init__(x,y,self.raw_img_path)
+        self.stats = AgentStats(parent_1=parent_1,parent_2=parent_2)
         self.sense = AgentSense()
         self.movement_choice = 4
         self.max_energy = MAX_ENERGY
@@ -258,50 +258,49 @@ class Agent(GameObject):
         self.good_choice_chance = DEFAULT_INTELLIGENCE
         self.score = 0
         self.age = 0
+        self.mate = None
         self.last_pregnant_age = -PREGNANCY_COOLDOWN
         self.selected = False
-    
+        self.is_pregnant = False
+        self.mating_cooldown = 0
+        self.mating_cooldown_max = 5
     def __setstate__(self, state):
         self.__dict__ = state
         self.calc_color()
         
     def choose_sprite(self):
+        def finalize_sprite(old_path):    
+            if old_path != self.raw_img_path:
+                self.calc_img_path(self.raw_img_path)
+                self.loadImg(self.img_path)
+      
         if self.raw_img_path:
             old_raw_path = self.raw_img_path
         else:
             old_raw_path = None
+
         is_baby = self.age < AGE_OF_CONSENT
+        self.is_pregnant = self.pregnant > 0
         
-        if self.type == ObjectType.EVIL:
-            if self.alive:
-                self.raw_img_path = path.join(self.sprite_path,"agent_faces_evil")
+        sprite_file_name = "agent_faces"
 
-                if self.pregnant > 0:
-                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_procreation_evil")
-                elif is_baby:
-                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_baby_evil")
-            else:
-                self.raw_img_path = path.join(self.sprite_path,"agent_faces_dead")
-                if is_baby:
-                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_baby_dead")
-        else:
-            self.raw_img_path = path.join(self.sprite_path,"agent_faces_neutral")
+        if is_baby:
+            sprite_file_name += "_baby"
+        elif self.is_pregnant:
+            sprite_file_name += "_procreation"
+        if not self.alive:
+            sprite_file_name += "_dead"
+            self.raw_img_path = path.join(self.sprite_path,sprite_file_name)
+            finalize_sprite(old_raw_path)
+            return
 
-            if self.alive:
-                if self.pregnant > 0:
-                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_procreation")
-                elif is_baby:
-                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_baby")
-            else:
-                self.raw_img_path = path.join(self.sprite_path,"agent_faces_dead")
-                if is_baby:
-                    self.raw_img_path = path.join(self.sprite_path,"agent_faces_baby_dead")
-        
-
-
-        if old_raw_path != self.raw_img_path:
-            self.calc_img_path(self.raw_img_path)
-            self.loadImg(self.img_path)
+        if self.selected:
+            sprite_file_name += "_main"
+        elif self.type == ObjectType.EVIL:
+            sprite_file_name += "_evil"
+        self.raw_img_path = path.join(self.sprite_path,sprite_file_name)
+        finalize_sprite(old_raw_path)
+        return
 
     def consume(self,energy):
         self.energy += energy
@@ -310,8 +309,6 @@ class Agent(GameObject):
         if self.pregnant >= 0:
             self.pregnant += energy
         
-        # EC Idea: What about other ways to calculate score?
-
         health_score = self.health/MAX_HEALTH
         if health_score < 0.001:
             health_score = 0.001
@@ -322,17 +319,17 @@ class Agent(GameObject):
         self.score += energy * health_score * energy_score
 
     def tick(self):
+        if self.mating_cooldown > 0:
+            self.mating_cooldown -= 1
         if self.energy <= 0 or self.health <= 0:
             self.die()
 
         if self.selected and self.alive:
             self.heal()
-# =============================================================================
-#         if self.type == ObjectType.EVIL:
-#             print(f"EVIL: {self.age}")
-#         else:
-#             print(f"GOOD: {self.age}")
-# =============================================================================
+        # if self.type == ObjectType.EVIL:
+        #     print(f"EVIL: {self.age}")
+        # else:
+        #     print(f"GOOD: {self.age}")
 
     def choose_movement(self):
         move = random.randint(0,8)
@@ -368,10 +365,7 @@ class Agent(GameObject):
 
     def select(self):
         self.selected = True
-        self.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_main")
-        self.calc_img_path(self.raw_img_path)
-        self.loadImg(self.img_path)
-            
+
     def calc_color(self):
         self.loadImg(self.img_path)
         red_color =  int(255-(255 * (self.health/MAX_HEALTH)))
@@ -380,13 +374,15 @@ class Agent(GameObject):
 
         self.img.fill(pg.Color(255,255-red_color,255-red_color,1),special_flags=pg.BLEND_MIN)
 
-
     def take_damage(self, damage):
-        self.health -= damage
+        hit = damage*(self.stats.stats["endurance"]/self.stats.gene_cap)
+        self.health -= hit
         if self.health >= 0:
             self.calc_color()
         else:
             self.die()
+
+        return hit
     
     def draw(self,x,y,surface):
         self.choose_sprite()
@@ -396,10 +392,48 @@ class Agent(GameObject):
         if self.selected:
             self.sense.draw(surface)
 
+    def attempt_mate(self,mate):
+        if self.age >= AGE_OF_CONSENT and self.pregnant == -1 and self.mating_cooldown <= 0:
+            if mate.id != self.id and mate.type == self.type and mate.is_pregnant == False and mate.alive and mate.age >= AGE_OF_CONSENT:
+                #if (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
+                if self.x == mate.x and self.y == mate.y:
+                    fertility_score = mate.stats.stats["fertility"] + self.stats.stats["fertility"]  
+                    needed = random.randint(0,self.stats.gene_cap*2)
+                    if fertility_score >= needed:
+                        if VERBOSE:
+                            print(f"{self.id} has impregnated {mate.id}!")
+                        mate.is_pregnant = True
+                        mate.pregnant = 0
+                        mate.current_mate = self
+                        self.mating_cooldown = self.mating_cooldown_max
+    
+    def give_birth(self,x,y):
+        self.is_pregnant = False
+        self.pregnant = -1
+        self.last_pregnant_age = self.age
+        
+        
+        if (self.type != ObjectType.EVIL):
+            if self.mate != None:
+                baby = Agent(x, y,parent_1=self,parent_2=self.mate)
+            else:
+                baby = Agent(x, y,parent_1=self,parent_2=self)
+
+        else:
+            if self.mate != None:
+                baby = EvilAgent(x, y,parent_1=self,parent_2=self.mate)
+            else:
+                baby = EvilAgent(x, y,parent_1=self,parent_2=self)
+        
+        self.mate = None
+        baby.energy = PREGNANCY_FOOD_GOAL
+        self.deplete(PREGNANCY_FOOD_GOAL)
+        return baby
+
 class EvilAgent(Agent):
-    def __init__(self,x=None,y=None):
+    def __init__(self,x=None,y=None,parent_1=None,parent_2=None):
         self.raw_img_path = None
-        super().__init__(x,y,self.raw_img_path)
+        super().__init__(x,y,parent_1=parent_1,parent_2=parent_2)
         self.choose_sprite()
         self.type = ObjectType.EVIL
         self.good_choice_chance = DEFAULT_EVIL_INTELLIGENCE
@@ -416,6 +450,7 @@ class EvilAgent(Agent):
                 move = random.randint(0,8)
 
         return move
+
 class AgentSense:
     def __init__(self):
         self.sm_font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 11)
@@ -609,6 +644,88 @@ class AgentSense:
     def update_smell(self,x,y,grid,agents,plants):
         self.apply_smell_to_array()
 
+class AgentStats:
+    def __init__(self,parent_1=None,parent_2=None):
+        # All Stats range from 1 to 10
+        
+        self.gene_avg = 4
+        self.gene_cap = 10
+        self.gene_min = 1
+
+        self.stats = {}
+        self.stats["speed"] = self.gene_min
+        self.stats["agility"] = self.gene_min
+        self.stats["intelligence"] = self.gene_min
+        self.stats["endurance"] = self.gene_min
+        self.stats["strength"] = self.gene_min
+        self.stats["fertility"] = self.gene_min
+        self.stats["bite_size"] = self.gene_min
+        self.stats["gene_stability"] = self.gene_min
+        
+        # If GS == 10, only mod by gene_avg
+        # If GS == 1, mod gene_avg * 5
+        
+        self.gene_limit = self.gene_avg*len(self.stats)*self.gene_min
+        if parent_1 != None and parent_2 != None:
+            self.assignFromParents(parent_1,parent_2)
+        else:
+            self.scramble_genetics()
+
+        self.cleanGenes()
+        print(self.stats)
+
+    def getNumMoves(self):
+        speed = self.stats["speed"]
+        if speed <= 3:
+            return 1
+        elif speed <= 6:
+            return 2
+        elif speed <= 9:
+            return 3
+        return 1
+    def assignFromParents(self,parent_1, parent_2):
+        for key in self.stats:
+            self.stats[key] = (parent_1.stats.stats[key] + parent_2.stats.stats[key])/2
+        # genes_to_mod = self.gene_cap/self.stats["gene_stability"]/2 + 1
+        genes_to_mod = 10
+        amount_to_mod = (self.gene_cap/self.stats["gene_stability"])/self.gene_avg
+
+        for i in range(int(genes_to_mod)):
+            self.addToRandGene(amount_to_mod)
+            self.subFromRandGene(amount_to_mod)
+
+    def addToRandGene(self,amount):
+        assigned = False
+        while not assigned:
+            key = random.choice(list(self.stats.keys()))
+            if self.stats[key] < self.gene_cap:
+                self.stats[key] += amount
+                assigned = True
+
+    def subFromRandGene(self,amount):
+        assigned = False
+        while not assigned:
+            key = random.choice(list(self.stats.keys()))
+            if self.stats[key] - amount >= self.gene_min:
+                self.stats[key] -= 1
+                assigned = True
+
+    def cleanGenes(self):
+        for key in self.stats:
+            self.stats[key] = round(self.stats[key],3)
+            if self.stats[key] < self.gene_min:
+                self.stats[key] = self.gene_min
+            if self.stats[key] > self.gene_cap:
+                self.stats[key] = self.gene_cap
+
+    def scramble_genetics(self):
+        for i in range(self.gene_limit - len(self.stats)):
+            assigned = False
+            while not assigned:
+                key = random.choice(list(self.stats.keys()))
+                if self.stats[key] < self.gene_cap:
+                    self.stats[key] += 1
+                    assigned = True
 class Grid:
     def __init__(self,width,height):
         self.width = width
@@ -755,6 +872,34 @@ class Grid:
         world_y += self.padding*2
         return world_x, world_y
         
+    def calcTileFromXY(self,x,y):
+
+        if x <= self.grid_padding or y <= self.grid_padding:
+            return None, None
+        if x >= self.grid_padding + GAME_GRID_WIDTH * (self.padding + self.square_size):
+            return None, None
+        if y >= self.grid_padding + GAME_GRID_HEIGHT * (self.padding + self.square_size):
+            return None, None
+
+        tile_x = None
+        tile_y = None
+
+        for i in range(GAME_GRID_WIDTH):
+            j = i + 1
+            low = i * self.padding + i * self.square_size + self.grid_padding
+            high = j * self.padding + j * self.square_size + self.grid_padding
+            if low <= x <= high:
+                tile_x = i 
+
+        for i in range(GAME_GRID_HEIGHT):
+            j = i + 1
+            low = i * self.padding + i * self.square_size + self.grid_padding
+            high = j * self.padding + j * self.square_size + self.grid_padding
+            if low <= y <= high:
+                tile_y = i
+
+        return tile_x, tile_y
+        
 
     # Get a tile by it's coordinates. If no tile matches, return None
     def getTile(self,x,y):
@@ -845,6 +990,23 @@ class GameManager:
         self.__dict__ = state
         self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 25)
     
+    def selectFromXY(self,x,y):
+        calc_x, calc_y = self.grid.calcTileFromXY(x,y)
+        selected_id = None
+        if calc_x != None and calc_y != None:
+            for agent in self.agents:
+                if agent.x == calc_x and agent.y == calc_y:
+                    selected_id = agent.id
+        if selected_id != None:
+            self.selectByID(selected_id)
+
+    def selectByID(self,sel_id):
+        for agent in self.agents:
+            if agent.id == sel_id:
+                agent.select()
+            else:
+                agent.selected = False
+
     def draw(self,game_window):
         self.grid.draw(game_window)
         # Draw plants
@@ -856,12 +1018,17 @@ class GameManager:
                 world_x, world_y = self.grid.calcXYLocation(agent.x,agent.y)
                 agent.draw(world_x, world_y, game_window)
         
-        
-        labels_y_start = 500
-        game_window.blit(self.font.render(f"HEALTH: {self.main_agent.health}", 0, (255, 0, 0)), (10, labels_y_start))
 
-        game_window.blit(self.font.render(f"ENERGY: {round(self.main_agent.energy,2)}", 0, (255, 0, 0)), (10, labels_y_start+30))
-        game_window.blit(self.font.render(f"SCORE:   {round(self.main_agent.score,2)}", 0, (255, 0, 0)), (10, labels_y_start+60))
+
+        for agent in self.agents:
+            if agent.selected:
+                self.main_agent = agent
+        labels_y_start = 470
+        game_window.blit(self.font.render(f"ID: {self.main_agent.id}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start))
+        game_window.blit(self.font.render(f"HEALTH: {self.main_agent.health}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+30))
+
+        game_window.blit(self.font.render(f"ENERGY: {round(self.main_agent.energy,2)}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+60))
+        game_window.blit(self.font.render(f"SCORE:   {round(self.main_agent.score,2)}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+90))
 
     def plantTick(self):
         for plant in self.plants:
@@ -898,41 +1065,43 @@ class GameManager:
                         agent.consume(plant.energy)
                         self.plants.remove(plant)
                         self.addPlant()
-                        #if agent.pregnant >= 0:
-                        #    agent.pregnant += 1
                     else:
-                        agent.consume(10)
                         #if agent.pregnant >= 0:
                         #    agent.pregnant += 1
-                            
                         if plant.energy > 10:
+                            agent.consume(10)
                             plant.deplete(10)
                         else:
+                            agent.consume(plant.energy)
                             self.plants.remove(plant)
-                            self.addPlant()         
-                
-                if agent.age >= AGE_OF_CONSENT and agent.pregnant == -1:
-                    for target_agent in self.agents:
-                        if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT and (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
-                            if agent.x == target_agent.x and agent.y == target_agent.y:
-                                target_agent.pregnant = 0
+                            self.addPlant()
+
+                for target_agent in self.agents:
+                    if agent.x == target_agent.x and agent.y == target_agent.y:    
+                        agent.attempt_mate(target_agent)
+
+                # if agent.age >= AGE_OF_CONSENT and agent.pregnant == -1:
+                #     for target_agent in self.agents:
+                #         if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT and (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
+                #             if agent.x == target_agent.x and agent.y == target_agent.y:
+                #                 target_agent.pregnant = 0
                                 #if (target_agent.type == ObjectType.EVIL):
                                     #target_agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
-                                
         else:
             for target_agent in self.agents:
-                if target_agent.type != ObjectType.EVIL:
+                if target_agent.type != ObjectType.EVIL or not target_agent.alive or agent.energy < 30:
                     if target_agent.alive:
                         if agent.id != target_agent.id and agent.x == target_agent.x and agent.y == target_agent.y:
-                            target_agent.take_damage(10)     
-                            agent.consume(5)
-                            target_agent.deplete(5)
+                            hit_strength = agent.stats.stats["strength"]
+                            damage = target_agent.take_damage(hit_strength)
+                            agent.consume(damage)
                     else:
-                        if target_agent.energy > 10:
-                            agent.consume(10)
+                        bite = agent.stats.stats["bite_size"]
+                        if target_agent.energy > bite:
+                            agent.consume(bite)
                             #if agent.pregnant >= 0:
                             #    agent.pregnant += 10
-                            target_agent.deplete(10)
+                            target_agent.deplete(bite)
                         else:
                             agent.consume(target_agent.energy)
                             #if agent.pregnant >= 0:
@@ -945,46 +1114,63 @@ class GameManager:
                             target_agent.selected = False
                             self.agents.remove(target_agent)
             
-            if agent.age >= AGE_OF_CONSENT and agent.pregnant == -1:
-                for target_agent in self.agents:
-                    if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT and (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
-                        if agent.x == target_agent.x and agent.y == target_agent.y:
-                            #print("Impregnate!")
-                            target_agent.pregnant = 0
+            for target_agent in self.agents:
+                if agent.x == target_agent.x and agent.y == target_agent.y:    
+                    agent.attempt_mate(target_agent)
+            # if agent.age >= AGE_OF_CONSENT and agent.pregnant == -1:
+            #     for target_agent in self.agents:
+            #         if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.is_pregnant == False and target_agent.alive and target_agent.age >= AGE_OF_CONSENT:
+            #             #if (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
+            #             if agent.x == target_agent.x and agent.y == target_agent.y:
+            #                 fertility_score = target_agent.stats.stats["fertility"] + agent.stats.stats["fertility"]  
+            #                 needed = random.randint(0,agent.stats.gene_cap*2)
+            #                 if fertility_score >= needed:
+            #                     if VERBOSE:
+            #                         print(f"{agent.id} has impregnated {target_agent.id}!")
+            #                     target_agent.is_pregnant = True
+            #                     target_agent.pregnant = 0
                             #target_agent.raw_img_path = path.join(ABS_PATH,"art_assets","agent_faces","agent_faces_procreation_evil")
                             #target_agent.calc_img_path(target_agent.raw_img_path)
                             #target_agent.loadImg(target_agent.img_path)
                             #target_agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
-            
+
         if agent.alive and agent.pregnant >= PREGNANCY_FOOD_GOAL:
-            agent.pregnant = -1
-            agent.last_pregnant_age = agent.age
-            #if (agent.type == ObjectType.EVIL):
-                #agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
             baby_x, baby_y = self.grid.calcRandNearby(agent.x, agent.y, 1)
-            baby = None
-            if (agent.type != ObjectType.EVIL):
-                baby = Agent(baby_x, baby_y)
-            else:
-                baby = EvilAgent(baby_x, baby_y)
-            baby.energy = PREGNANCY_FOOD_GOAL
-            agent.deplete(PREGNANCY_FOOD_GOAL)
+            baby = agent.give_birth(baby_x, baby_y)
+            
             self.agents.append(baby)
             baby.sense.update(baby.x, baby.y, self.grid, self.agents,self.plants)
+            if VERBOSE:
+                print(f"{agent.id} has given birth to {baby.id}!")
         
         agent.sense.update(agent.x,agent.y,self.grid,self.agents,self.plants)
         agent.age += 1
 
 
-    def logicTick(self,player_move=None):
+    def logicTick(self,player_move=None,draw_func=None):
         random.shuffle(self.plants)
-        random.shuffle(self.agents)
         self.plantTick()
-        
+
+        #TODO Prove this won't skip anyone if someone is killed or is born
+        run_ids = []
+
+        remaining_ids = []
         for agent in self.agents:
-            self.agentTick(agent)
-        
-        
+            remaining_ids.append(agent.id)
+
+        while len(run_ids) < len(self.agents):
+            random.shuffle(self.agents)
+            for agent in self.agents:
+                if agent.id not in run_ids:
+                    rand = random.randint(0,10)
+                    if rand <= agent.stats.stats["agility"]:
+                        for i in range(agent.stats.getNumMoves()):
+                            self.agentTick(agent)
+                            if draw_func != None:
+                                draw_func()
+                        run_ids.append(agent.id)
+
+
     def addPlant(self):
         x, y = self.grid.randEmptySpace()
         plant = Plant(x,y)

@@ -5,7 +5,7 @@ WINDOW_HEIGHT = 700
 
 # How many tiles should the grid have horizontally and vertically?
 # CURRENTLY ALL GRIDS MUST BE SQUARE
-GAME_GRID_WIDTH = 10
+GAME_GRID_WIDTH = 20
 GAME_GRID_HEIGHT = GAME_GRID_WIDTH
 
 # Total number of spaces 
@@ -58,9 +58,9 @@ SMELL_DIST = 10
 
 SQUARE_SIZE = int(WINDOW_WIDTH/GAME_GRID_WIDTH*0.8)
 
-NUM_AGENTS = 3
+NUM_AGENTS = 5
 
-NUM_EVIL = 1
+NUM_EVIL = 5
 
 # Defines how smart the non-student agents are.
 # A value between 0 and 1, where a lower value means the 
@@ -71,7 +71,7 @@ DEFAULT_INTELLIGENCE = 0.2
 DEFAULT_EVIL_INTELLIGENCE = 0.5
 
 # Indicates whether or not it takes time to consume a plant
-EAT_PLANT_INSTANT = True
+EAT_PLANT_INSTANT = False
 
 # Indicates how much food needs to be eaten by the agent after it is pregnant
 PREGNANCY_FOOD_GOAL = 50
@@ -82,3 +82,4 @@ AGE_OF_CONSENT = 100
 # Indicates period of time between pregnancies/procreation
 PREGNANCY_COOLDOWN = 100
 
+VERBOSE = True
