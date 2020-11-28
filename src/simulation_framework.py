@@ -254,7 +254,7 @@ class Plant(GameObject):
         return i
 
 class Agent(GameObject):
-    def __init__(self,x=None,y=None,raw_img_path=None,parent_1=None,parent_2=None):
+    def __init__(self,x=None,y=None,raw_img_path=None,parent_1=None,parent_2=None,stats=None):
         global AGENT_ID
         self.sprite_path = path.join(ABS_PATH, "art_assets","agent_faces","neutral")
         if raw_img_path is None:
@@ -263,12 +263,15 @@ class Agent(GameObject):
             self.raw_img_path = raw_img_path
 
         super().__init__(x,y,self.raw_img_path)
-        self.stats = AgentStats(parent_1=parent_1,parent_2=parent_2)
+        if stats == None:
+            self.stats = AgentStats(parent_1=parent_1,parent_2=parent_2)
+        else:
+            self.stats = stats
         self.sense = AgentSense()
         self.movement_choice = 4
-        self.max_energy = MAX_ENERGY
+        self.max_energy = MAX_ENERGY * ((self.stats.stats["energy"]/self.stats.gene_cap-0.5)+1)
         self.energy = self.max_energy
-        self.health = MAX_HEALTH
+        self.health = MAX_HEALTH * ((self.stats.stats["health"]/self.stats.gene_cap-0.5)+1)
         self.score = 0
         self.alive = True
         self.type = ObjectType.NEUTRAL
@@ -285,6 +288,7 @@ class Agent(GameObject):
         self.is_pregnant = False
         self.mating_cooldown = 0
         self.mating_cooldown_max = 5
+        
     def __setstate__(self, state):
         self.__dict__ = state
         self.calc_color()
@@ -293,7 +297,7 @@ class Agent(GameObject):
         def finalize_sprite(old_path):    
             if old_path != self.raw_img_path:
                 self.calc_img_path(self.raw_img_path)
-                self.loadImg(self.img_path)
+                self.calc_color()
       
         if self.raw_img_path:
             old_raw_path = self.raw_img_path
@@ -354,7 +358,7 @@ class Agent(GameObject):
 
     def choose_movement(self):
         move = random.randint(0,8)
-
+        self.good_choice_chance = (self.stats.stats["intelligence"]/self.stats.gene_cap)*0.75
         if random.random() <= self.good_choice_chance:
             smell_list = list(self.sense.food_smell.flatten())
             move = smell_list.index(max(smell_list))
@@ -390,9 +394,9 @@ class Agent(GameObject):
     def calc_color(self):
         self.loadImg(self.img_path)
         red_color =  int(255-(255 * (self.health/MAX_HEALTH)))
-        if red_color < 0:
+        if red_color < 0 or self.health < 0:
             red_color = 0
-
+        
         self.img.fill(pg.Color(255,255-red_color,255-red_color,1),special_flags=pg.BLEND_MIN)
 
     def take_damage(self, damage):
@@ -426,6 +430,7 @@ class Agent(GameObject):
                         mate.is_pregnant = True
                         mate.pregnant = 0
                         mate.current_mate = self
+                        mate.baby_stats = AgentStats(parent_1=self,parent_2=mate)
                         self.mating_cooldown = self.mating_cooldown_max
     
     def give_birth(self,x,y):
@@ -436,7 +441,7 @@ class Agent(GameObject):
         
         if (self.type != ObjectType.EVIL):
             if self.mate != None:
-                baby = Agent(x, y,parent_1=self,parent_2=self.mate)
+                baby = Agent(x, y,stats=self.baby_stats)
             else:
                 baby = Agent(x, y,parent_1=self,parent_2=self)
 
@@ -447,6 +452,7 @@ class Agent(GameObject):
                 baby = EvilAgent(x, y,parent_1=self,parent_2=self)
         
         self.mate = None
+        self.baby_stats = None
         baby.energy = PREGNANCY_FOOD_GOAL
         self.deplete(PREGNANCY_FOOD_GOAL)
         return baby
@@ -465,6 +471,7 @@ class EvilAgent(Agent):
     
     def choose_movement(self):
         move = random.randint(0,8)
+        self.good_choice_chance = (self.stats.stats["intelligence"]/self.stats.gene_cap)*0.75
         if random.random() <= self.good_choice_chance:
             smell_list = list(self.sense.creature_smell.flatten())
             move = smell_list.index(max(smell_list))
@@ -569,21 +576,21 @@ class AgentSense:
 
     def draw(self, surface):
 
-        surface.blit(self.sm_font.render(f"Terrain", 0, (255, 0, 0)), (10, WINDOW_HEIGHT - 80))
-        surface.blit(self.sm_font.render(f"Food", 0, (255, 0, 0)), (80, WINDOW_HEIGHT - 80))
-        surface.blit(self.sm_font.render(f"Agent", 0, (255, 0, 0)), (135, WINDOW_HEIGHT - 80))
-        surface.blit(self.sm_font.render(f"Danger", 0, (255, 0, 0)), (190, WINDOW_HEIGHT - 80))
+        if not SKIP_SIGHT:
+            surface.blit(self.sm_font.render(f"Terrain", 0, (255, 0, 0)), (10, WINDOW_HEIGHT - 80))
+            surface.blit(self.sm_font.render(f"Food", 0, (255, 0, 0)), (80, WINDOW_HEIGHT - 80))
+            surface.blit(self.sm_font.render(f"Agent", 0, (255, 0, 0)), (135, WINDOW_HEIGHT - 80))
+            surface.blit(self.sm_font.render(f"Danger", 0, (255, 0, 0)), (190, WINDOW_HEIGHT - 80))
+
+            for i in range(4):
+                img = Image.fromarray(self.sight_senses[i]).convert('RGB')
+                sense_img = pg.image.fromstring(img.tobytes("raw","RGB"), img.size, img.mode)                
+                sense_img = pg.transform.scale(sense_img,(50,50))
+                surface.blit(sense_img, self.sight_rects[i])
+                drawGenericGrid(self,surface,self.sight_rects[i],5,5)
 
         surface.blit(self.sm_font.render(f"Food", 0, (255, 0, 0)), (260, WINDOW_HEIGHT - 80))
         surface.blit(self.sm_font.render(f"Agent", 0, (255, 0, 0)), (320, WINDOW_HEIGHT - 80))
-
-
-        for i in range(4):
-            img = Image.fromarray(self.sight_senses[i]).convert('RGB')
-            sense_img = pg.image.fromstring(img.tobytes("raw","RGB"), img.size, img.mode)                
-            sense_img = pg.transform.scale(sense_img,(50,50))
-            surface.blit(sense_img, self.sight_rects[i])
-            drawGenericGrid(self,surface,self.sight_rects[i],5,5)
 
         for i in range(2):
             img = Image.fromarray(self.smell_senses[i]).convert('RGB')
@@ -600,7 +607,10 @@ class AgentSense:
             #self.sight_senses[i] = np.flipud(self.sight_senses[i])
         
     def update(self,x,y,grid,agents,plants):
-        self.update_sight(x,y,grid,agents,plants)
+        if not SKIP_SIGHT:
+            self.update_sight(x,y,grid,agents,plants)
+        else:
+            self.reset_sight()
         self.update_smell(x,y,grid,agents,plants)
         grid_loc_x = 0
         for x_offset in range(-self.smell_dist_from_agent, self.smell_dist_from_agent+1):
@@ -683,6 +693,8 @@ class AgentStats:
         self.stats["fertility"] = self.gene_min
         self.stats["bite_size"] = self.gene_min
         self.stats["gene_stability"] = self.gene_min
+        self.stats["health"] = self.gene_min
+        self.stats["energy"] = self.gene_min
         
         # If GS == 10, only mod by gene_avg
         # If GS == 1, mod gene_avg * 5
@@ -694,6 +706,7 @@ class AgentStats:
             self.scramble_genetics()
 
         self.cleanGenes()
+        self.shiftToCap()
         print(self.stats)
 
     def getNumMoves(self):
@@ -705,6 +718,7 @@ class AgentStats:
         elif speed <= 9:
             return 3
         return 1
+
     def assignFromParents(self,parent_1, parent_2):
         for key in self.stats:
             self.stats[key] = (parent_1.stats.stats[key] + parent_2.stats.stats[key])/2
@@ -739,6 +753,15 @@ class AgentStats:
                 self.stats[key] = self.gene_min
             if self.stats[key] > self.gene_cap:
                 self.stats[key] = self.gene_cap
+
+    def shiftToCap(self):
+        total = sum(self.stats.values())
+        while total > self.gene_limit:
+            for key in self.stats:
+                self.stats[key] -= 1/len(self.stats)
+            total = sum(self.stats.values())
+                    
+        print(f"TOTAL:{total}")
 
     def scramble_genetics(self):
         for i in range(self.gene_limit - len(self.stats)):
@@ -1010,7 +1033,7 @@ class GameManager:
     def __setstate__(self, state):
         #print("Within setstate of GameManager")
         self.__dict__ = state
-        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 25)
+        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 12)
     
     def selectFromXY(self,x,y):
         calc_x, calc_y = self.grid.calcTileFromXY(x,y)
@@ -1021,15 +1044,37 @@ class GameManager:
                     selected_id = agent.id
         if selected_id != None:
             self.selectByID(selected_id)
+        return selected_id
 
     def selectByID(self,sel_id):
+        global SIMULATION_RUNNER_ALWAYS_HAVE_SELECTED_AGENT
+        
+        selected_agent = False
+        decided_id = sel_id
+        
+        if decided_id is None and self.main_agent is not None:
+            decided_id = self.main_agent.id
+            
         for agent in self.agents:
-            if agent.id == sel_id:
+            if ((not selected_agent) and (decided_id is None or (agent.id == decided_id))):
+                selected_agent = True
                 agent.select()
             else:
                 agent.selected = False
+                
+        if selected_agent:
+            return decided_id
+        elif SIMULATION_RUNNER_ALWAYS_HAVE_SELECTED_AGENT:
+            # Select the first available agent
+            if self.agents:
+                self.agents[0].select()
+                return self.agents[0].id
+            else:
+                return None
+        else:
+            return None
 
-    def draw(self,game_window):
+    def draw(self,game_window,simulation_runner_message=None):
         self.grid.draw(game_window)
         # Draw plants
         for plant in self.plants:
@@ -1053,17 +1098,25 @@ class GameManager:
         game_window.blit(self.font.render(f"SCORE:   {round(self.main_agent.score,2)}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+60))
         stats1 = {}
         stats2 = {}
+        stats3 = {}
+        
         index = 0
         for key in self.main_agent.stats.stats:
             if index < 4:
                 stats1[key] = self.main_agent.stats.stats[key]
-            else:
+            elif index < 8:
                 stats2[key] = self.main_agent.stats.stats[key]
+            else:
+                stats3[key] = self.main_agent.stats.stats[key]
             index += 1
         
         game_window.blit(self.font.render(f"{stats1}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+80))
         game_window.blit(self.font.render(f"{stats2}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+100))
+        game_window.blit(self.font.render(f"{stats3}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
 
+        if simulation_runner_message is not None:
+            game_window.blit(self.font.render(simulation_runner_message, 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
+ 
     def plantTick(self):
         for plant in self.plants:
             plant.tick()
@@ -1126,7 +1179,7 @@ class GameManager:
                 if target_agent.type != ObjectType.EVIL or not target_agent.alive or agent.energy < 30:
                     if target_agent.alive:
                         if agent.id != target_agent.id and agent.x == target_agent.x and agent.y == target_agent.y:
-                            hit_strength = agent.stats.stats["strength"]
+                            hit_strength = agent.stats.stats["strength"]+agent.stats.stats["bite_size"]
                             damage = target_agent.take_damage(hit_strength)
                             agent.consume(damage)
                     else:
@@ -1168,7 +1221,7 @@ class GameManager:
                             #target_agent.loadImg(target_agent.img_path)
                             #target_agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
 
-        if agent.alive and agent.pregnant >= PREGNANCY_FOOD_GOAL:
+        if agent.alive and agent.is_pregnant and agent.pregnant >= sum(agent.baby_stats.stats.values()):
             baby_x, baby_y = self.grid.calcRandNearby(agent.x, agent.y, 1)
             baby = agent.give_birth(baby_x, baby_y)
             
@@ -1181,7 +1234,7 @@ class GameManager:
         agent.age += 1
 
 
-    def logicTick(self,player_move=None,draw_func=None):
+    def logicTick(self,player_move=None,draw_func=None):        
         random.shuffle(self.plants)
         self.plantTick()
 
@@ -1204,6 +1257,8 @@ class GameManager:
                                 draw_func()
                         run_ids.append(agent.id)
 
+        # Returns the ID for bookkeeping from the simulation runner/driver program
+        return self.main_agent.id        
 
     def addPlant(self):
         x, y = self.grid.randEmptySpace()
