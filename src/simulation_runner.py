@@ -172,7 +172,7 @@ def check_events():
                     if (GAME_STATE_INDEX < len(ARR_GAME_STATES)-1):
                         GAME_STATE_INDEX += 1
                         restore = True
-                    elif (GAME_STATE_INDEX > len(ARR_GAME_STATES)-1):
+                    elif (GAME_STATE_INDEX > len(ARR_GAME_STATES)):
                         print("ERROR: GAME_STATE_INDEX OOB WITH K_RIGHT")
                         exit(9)
                 else:
