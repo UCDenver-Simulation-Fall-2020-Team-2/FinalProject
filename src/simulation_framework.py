@@ -9,7 +9,11 @@ from variable_config import *
 #import time
 from enum import Enum
 from math import sqrt
-from copy import deepcopy
+import traceback
+import pickle
+import dill
+
+
 #random.seed(99)
 
 # Initialize pygame.
@@ -103,11 +107,23 @@ def drawGenericGrid(self,surface,rect,num_x,num_y):
 
 # A class that allows for the saving and restoring of the game.
 class GameState():
-    def __init__(self, game_manager):
-        self.game_manager = game_manager.deepcopy()
+    def __init__(self, in_game_manager):
+        self.pickled_game_manager = None
+        try:
+            dill.detect.trace(False)
+            self.pickled_game_manager = dill.dumps(in_game_manager)
+        except Exception as e:
+            traceback.print_exc()
+            sys.exit(9)
 
-    def restore(self, game_manager):
-        game_manager = self.game_manager
+    def restore(self):
+        game_manager = None
+        try:
+           game_manager = dill.loads(self.pickled_game_manager)
+        except Exception as e:
+            traceback.print_exc()
+            sys.exit(9)
+        return game_manager
 
 # class SensoryMatrix:
 class GameObject:
@@ -127,6 +143,18 @@ class GameObject:
         self.energy = 0    
         self.max_energy = 100
 
+    def __getstate__(self):
+        attributes = self.__dict__.copy()
+        del attributes['img']
+        del attributes['img_rect']
+        return attributes
+    
+    def __setstate__(self, state):
+        #print("Within setstate of GameObject")
+        self.__dict__ = state
+        self.calc_img_path(self.raw_img_path)
+        self.loadImg(self.img_path)
+    
     def consume(self,energy):
         self.energy += energy
         if self.energy > self.max_energy:
@@ -234,6 +262,10 @@ class Agent(GameObject):
         self.last_pregnant_age = -PREGNANCY_COOLDOWN
         self.selected = False
     
+    def __setstate__(self, state):
+        self.__dict__ = state
+        self.calc_color()
+        
     def choose_sprite(self):
         if self.raw_img_path:
             old_raw_path = self.raw_img_path
@@ -296,10 +328,12 @@ class Agent(GameObject):
 
         if self.selected and self.alive:
             self.heal()
-        if self.type == ObjectType.EVIL:
-            print(f"EVIL: {self.age}")
-        else:
-            print(f"GOOD: {self.age}")
+# =============================================================================
+#         if self.type == ObjectType.EVIL:
+#             print(f"EVIL: {self.age}")
+#         else:
+#             print(f"GOOD: {self.age}")
+# =============================================================================
 
     def choose_movement(self):
         move = random.randint(0,8)
@@ -383,7 +417,6 @@ class EvilAgent(Agent):
                 move = random.randint(0,8)
 
         return move
-
 class AgentSense:
     def __init__(self):
         self.sm_font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 11)
@@ -422,7 +455,38 @@ class AgentSense:
                             )
             self.smell_rects.append(smell_rect)
 
-
+    # Reference: https://realpython.com/python-pickle-module/
+    def __getstate__(self):
+        #print("Within getState of AgentSense")
+        attributes = self.__dict__.copy()
+        del attributes['sight_rects']
+        del attributes['smell_rects']
+        del attributes['sm_font']
+        return attributes
+    
+    def __setstate__(self, state):
+        #print("Within setstate of AgentSense")
+        self.__dict__ = state
+        self.sm_font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 11)
+        self.sight_rects = []
+        for i in range(4):
+            sight_rect = pg.Rect(
+                            10 + 60 * i,
+                            WINDOW_HEIGHT - 60,
+                            50,
+                            50
+                            )
+            self.sight_rects.append(sight_rect)
+        self.smell_rects = []
+        for i in range(2):
+            smell_rect = pg.Rect(
+                            10 + 60 * 4 + 60 * i,
+                            WINDOW_HEIGHT - 60,
+                            50,
+                            50
+                            )
+            self.smell_rects.append(smell_rect)
+    
     def reset_sight(self):
         self.elevation_sight = np.zeros((self.sight_range,self.sight_range))
         self.food_sight = np.zeros((self.sight_range,self.sight_range))
@@ -561,6 +625,28 @@ class Grid:
         self.line_color = pg.Color("#010101")
         self.calcHeightMap()
 
+    def __getstate__(self):
+        #print("Within getState of Grid")
+        attributes = self.__dict__.copy()
+        del attributes['default_color']
+        del attributes['line_color']
+        del attributes['elevation_map_img']
+        return attributes
+    
+    def __setstate__(self, state):
+        #print("Within setstate of Grid")
+        self.__dict__ = state
+        self.default_color = pg.Color("#FFFFFF")
+        self.line_color = pg.Color("#010101")
+        
+        # Redraw elevation map image
+        img_path = path.join(ABS_PATH,"height.png")
+        elevation_map_img = pg.image.load(img_path)
+        
+        self.elevation_map_img = pg.transform.scale(elevation_map_img,(self.total_x,self.total_y))
+        self.elevation_map_img = pg.transform.rotate(self.elevation_map_img,90)
+        self.elevation_map_img = pg.transform.flip(self.elevation_map_img,0,1)
+
     def calcRandNearby(self,x,y,rand_range):
         rand_range = rand_range * 2
         found = False
@@ -647,7 +733,7 @@ class Grid:
                             return i,j
                         count += 1
             print("ERROR: No spaces available")
-            exit(9)
+            sys.exit(9)
 
     # Calculate the amount of padding needed for the current grid.
     def calcGridPadding(self):
@@ -733,7 +819,7 @@ class GameManager:
         
         self.addAgent()
         self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 25)
-
+        
         self.agents[0].select()
         self.main_agent = self.agents[0]
         for i in range(NUM_EVIL):
@@ -741,11 +827,25 @@ class GameManager:
         for i in range(NUM_AGENTS-1):
             self.addAgent()
     
+        for curr in self.agents:
+            curr.age = AGE_OF_CONSENT
+            
         #self.addAgent(ObjectType.PROCREATION, path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_procreation"))
         
         for i in range(MAX_NUM_FOOD_ON_GRID):
             self.addPlant()
-        
+    
+    def __getstate__(self):
+        #print("Within getState of GameManager")
+        attributes = self.__dict__.copy()
+        del attributes['font']
+        return attributes
+    
+    def __setstate__(self, state):
+        #print("Within setstate of GameManager")
+        self.__dict__ = state
+        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 25)
+    
     def draw(self,game_window):
         self.grid.draw(game_window)
         # Draw plants
@@ -817,8 +917,8 @@ class GameManager:
                         if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT and (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
                             if agent.x == target_agent.x and agent.y == target_agent.y:
                                 target_agent.pregnant = 0
-                                if (target_agent.type == ObjectType.EVIL):
-                                    target_agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
+                                #if (target_agent.type == ObjectType.EVIL):
+                                    #target_agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
                                 
         else:
             for target_agent in self.agents:
@@ -850,18 +950,18 @@ class GameManager:
                 for target_agent in self.agents:
                     if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT and (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
                         if agent.x == target_agent.x and agent.y == target_agent.y:
-                            print("Impregnate!")
+                            #print("Impregnate!")
                             target_agent.pregnant = 0
-                            target_agent.raw_img_path = path.join(ABS_PATH,"art_assets","agent_faces","agent_faces_procreation_evil")
-                            target_agent.calc_img_path(target_agent.raw_img_path)
-                            target_agent.loadImg(target_agent.img_path)
-                            target_agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
+                            #target_agent.raw_img_path = path.join(ABS_PATH,"art_assets","agent_faces","agent_faces_procreation_evil")
+                            #target_agent.calc_img_path(target_agent.raw_img_path)
+                            #target_agent.loadImg(target_agent.img_path)
+                            #target_agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
             
         if agent.alive and agent.pregnant >= PREGNANCY_FOOD_GOAL:
             agent.pregnant = -1
             agent.last_pregnant_age = agent.age
-            if (agent.type == ObjectType.EVIL):
-                agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
+            #if (agent.type == ObjectType.EVIL):
+                #agent.img.fill(pg.Color("#AAAAFF"),special_flags=pg.BLEND_MIN)
             baby_x, baby_y = self.grid.calcRandNearby(agent.x, agent.y, 1)
             baby = None
             if (agent.type != ObjectType.EVIL):
@@ -883,12 +983,8 @@ class GameManager:
         self.plantTick()
         
         for agent in self.agents:
-            #if not agent.selected:
             self.agentTick(agent)
-        for agent in self.agents:
-            pass
-            #if agent.type == ObjectType.SELECTED:
-            #    self.agentTick(agent,player_move)
+        
         
     def addPlant(self):
         x, y = self.grid.randEmptySpace()
