@@ -1004,6 +1004,8 @@ class GameManager:
         return selected_id
 
     def selectByID(self,sel_id):
+        global SIMULATION_RUNNER_ALWAYS_HAVE_SELECTED_AGENT
+        
         selected_agent = False
         decided_id = sel_id
         
@@ -1011,7 +1013,7 @@ class GameManager:
             decided_id = self.main_agent.id
             
         for agent in self.agents:
-            if agent.id == decided_id:
+            if ((not selected_agent) and (decided_id is None or (agent.id == decided_id))):
                 selected_agent = True
                 agent.select()
             else:
@@ -1019,6 +1021,13 @@ class GameManager:
                 
         if selected_agent:
             return decided_id
+        elif SIMULATION_RUNNER_ALWAYS_HAVE_SELECTED_AGENT:
+            # Select the first available agent
+            if self.agents:
+                self.agents[0].select()
+                return self.agents[0].id
+            else:
+                return None
         else:
             return None
 

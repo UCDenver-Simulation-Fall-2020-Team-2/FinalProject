@@ -5,6 +5,8 @@ from pygame import Color
 FPS_LIST = [1,2,5,10,50,100,150]
 FPS_SELECTION = 5 # Index corresponding to available option from FPS_LIST
 
+SIMULATION_RUNNER_ALWAYS_HAVE_SELECTED_AGENT = True
+
 # Window width and height
 WINDOW_WIDTH = 500
 WINDOW_HEIGHT = 700
@@ -97,7 +99,6 @@ SIMULATION_RUNNER_SIGNAL_REDRAW = False
 SIMULATION_RUNNER_EXCEPTION_CAUGHT = False
 
 selected_id = None
-current_agent_id = None
 
 clock = pg.time.Clock()
 delta_time = 0
