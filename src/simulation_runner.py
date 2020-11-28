@@ -88,6 +88,8 @@ def rewindState():
         GAME_STATE_INDEX += 1
 
 def check_events():
+    global paused
+    global restore
     global run_game_loop
     for event in pg.event.get():
         if event.type == pg.KEYDOWN:

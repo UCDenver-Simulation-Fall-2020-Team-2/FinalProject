@@ -235,7 +235,7 @@ class Plant(GameObject):
 class Agent(GameObject):
     def __init__(self,x=None,y=None,raw_img_path=None,parent_1=None,parent_2=None):
         global AGENT_ID
-        self.sprite_path = path.join(ABS_PATH, "art_assets","agent_faces")
+        self.sprite_path = path.join(ABS_PATH, "art_assets","agent_faces","neutral")
         if raw_img_path is None:
             self.raw_img_path = path.join(self.sprite_path,"agent_faces")
         else:
@@ -296,8 +296,8 @@ class Agent(GameObject):
 
         if self.selected:
             sprite_file_name += "_main"
-        elif self.type == ObjectType.EVIL:
-            sprite_file_name += "_evil"
+        #elif self.type == ObjectType.EVIL:
+            #sprite_file_name += "_evil"
         self.raw_img_path = path.join(self.sprite_path,sprite_file_name)
         finalize_sprite(old_raw_path)
         return
@@ -434,6 +434,7 @@ class EvilAgent(Agent):
     def __init__(self,x=None,y=None,parent_1=None,parent_2=None):
         self.raw_img_path = None
         super().__init__(x,y,parent_1=parent_1,parent_2=parent_2)
+        self.sprite_path = path.join(ABS_PATH, "art_assets","agent_faces","evil")
         self.choose_sprite()
         self.type = ObjectType.EVIL
         self.good_choice_chance = DEFAULT_EVIL_INTELLIGENCE
@@ -962,7 +963,7 @@ class GameManager:
         self.plants = []
         
         self.addAgent()
-        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 25)
+        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 12)
         
         self.agents[0].select()
         self.main_agent = self.agents[0]
@@ -1025,10 +1026,22 @@ class GameManager:
                 self.main_agent = agent
         labels_y_start = 470
         game_window.blit(self.font.render(f"ID: {self.main_agent.id}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start))
-        game_window.blit(self.font.render(f"HEALTH: {self.main_agent.health}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+30))
+        game_window.blit(self.font.render(f"HEALTH: {round(self.main_agent.health,2)}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+20))
 
-        game_window.blit(self.font.render(f"ENERGY: {round(self.main_agent.energy,2)}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+60))
-        game_window.blit(self.font.render(f"SCORE:   {round(self.main_agent.score,2)}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+90))
+        game_window.blit(self.font.render(f"ENERGY: {round(self.main_agent.energy,2)}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+40))
+        game_window.blit(self.font.render(f"SCORE:   {round(self.main_agent.score,2)}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+60))
+        stats1 = {}
+        stats2 = {}
+        index = 0
+        for key in self.main_agent.stats.stats:
+            if index < 4:
+                stats1[key] = self.main_agent.stats.stats[key]
+            else:
+                stats2[key] = self.main_agent.stats.stats[key]
+            index += 1
+        
+        game_window.blit(self.font.render(f"{stats1}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+80))
+        game_window.blit(self.font.render(f"{stats2}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+100))
 
     def plantTick(self):
         for plant in self.plants:
