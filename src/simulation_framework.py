@@ -25,12 +25,20 @@ EXCEPTION_CAUGHT = False
 
 AGENT_ID = 0
 
+HANDLED_TICK = 0
+
 class ObjectType(Enum):
     PLANT = 0
     EVIL = 1
     NEUTRAL = 2
     PREGNANT = 3
     BABY = 4
+   
+def draw_outline(pg_font, desired_text, x, y, surface):
+    surface.blit(pg_font.render(desired_text, 0, (0, 0, 0)), (x-1, y))
+    surface.blit(pg_font.render(desired_text, 0, (0, 0, 0)), (x+1, y))
+    surface.blit(pg_font.render(desired_text, 0, (0, 0, 0)), (x, y-1))
+    surface.blit(pg_font.render(desired_text, 0, (0, 0, 0)), (x, y+1))
     
 def fast_dist(x1,y1,x2,y2):
     return np.linalg.norm(np.array((x1,y1))-np.array((x2,y2)))
@@ -165,11 +173,13 @@ class GameObject:
             self.die()
     
     def die(self):
+        global HANDLED_TICK
         self.alive = False
-    
+        self.death_tick = HANDLED_TICK
+        
     def loadImg(self, img_path):
         self.img = pg.image.load(img_path)
-        self.img = pg.transform.scale(self.img,(SQUARE_SIZE,SQUARE_SIZE))
+        self.img = pg.transform.smoothscale(self.img,(SQUARE_SIZE,SQUARE_SIZE))
         self.img_rect = self.img.get_rect()
 
     def calc_img_path(self, raw_img_path):
@@ -361,6 +371,7 @@ class Agent(GameObject):
             self.calc_color()
 
     def die(self):
+        global HANDLED_TICK
         # self.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_dead")
         # self.calc_img_path(self.raw_img_path)
         # self.loadImg(self.img_path)
@@ -369,6 +380,7 @@ class Agent(GameObject):
             blue = 255
         self.img.fill(pg.Color(255,0,blue,1),special_flags=pg.BLEND_MIN)
         self.alive = False
+        self.death_tick = HANDLED_TICK
 
     def select(self):
         self.selected = True
@@ -490,7 +502,7 @@ class AgentSense:
         for i in range(4):
             sight_rect = pg.Rect(
                             10 + 60 * i,
-                            WINDOW_HEIGHT - 60,
+                            RENDER_HEIGHT - 60,
                             50,
                             50
                             )
@@ -500,7 +512,7 @@ class AgentSense:
         for i in range(2):
             smell_rect = pg.Rect(
                             10 + 60 * 4 + 60 * i,
-                            WINDOW_HEIGHT - 60,
+                            RENDER_HEIGHT - 60,
                             50,
                             50
                             )
@@ -523,7 +535,7 @@ class AgentSense:
         for i in range(4):
             sight_rect = pg.Rect(
                             10 + 60 * i,
-                            WINDOW_HEIGHT - 60,
+                            RENDER_HEIGHT - 60,
                             50,
                             50
                             )
@@ -532,7 +544,7 @@ class AgentSense:
         for i in range(2):
             smell_rect = pg.Rect(
                             10 + 60 * 4 + 60 * i,
-                            WINDOW_HEIGHT - 60,
+                            RENDER_HEIGHT - 60,
                             50,
                             50
                             )
@@ -561,14 +573,21 @@ class AgentSense:
     def reset_smell(self):
         self.food_smell = np.zeros((self.smell_range,self.smell_range))
         self.creature_smell = np.zeros((self.smell_range,self.smell_range))
-
+        
     def draw(self, surface):
 
         if not SKIP_SIGHT:
-            surface.blit(self.sm_font.render(f"Terrain", 0, (255, 0, 0)), (10, WINDOW_HEIGHT - 80))
-            surface.blit(self.sm_font.render(f"Food", 0, (255, 0, 0)), (80, WINDOW_HEIGHT - 80))
-            surface.blit(self.sm_font.render(f"Agent", 0, (255, 0, 0)), (135, WINDOW_HEIGHT - 80))
-            surface.blit(self.sm_font.render(f"Danger", 0, (255, 0, 0)), (190, WINDOW_HEIGHT - 80))
+            draw_outline(self.sm_font, f"Terrain", 10, RENDER_HEIGHT-80, surface)
+            surface.blit(self.sm_font.render(f"Terrain", 0, (255, 0, 0)), (10, RENDER_HEIGHT - 80))
+            
+            draw_outline(self.sm_font, f"Food", 80, RENDER_HEIGHT-80, surface)
+            surface.blit(self.sm_font.render(f"Food", 0, (255, 0, 0)), (80, RENDER_HEIGHT - 80))
+            
+            draw_outline(self.sm_font, f"Agent", 135, RENDER_HEIGHT-80, surface)
+            surface.blit(self.sm_font.render(f"Agent", 0, (255, 0, 0)), (135, RENDER_HEIGHT - 80))
+            
+            draw_outline(self.sm_font, f"Danger", 190, RENDER_HEIGHT-80, surface)
+            surface.blit(self.sm_font.render(f"Danger", 0, (255, 0, 0)), (190, RENDER_HEIGHT - 80))
 
             for i in range(4):
                 img = Image.fromarray(self.sight_senses[i]).convert('RGB')
@@ -577,8 +596,11 @@ class AgentSense:
                 surface.blit(sense_img, self.sight_rects[i])
                 drawGenericGrid(self,surface,self.sight_rects[i],5,5)
 
-        surface.blit(self.sm_font.render(f"Food", 0, (255, 0, 0)), (260, WINDOW_HEIGHT - 80))
-        surface.blit(self.sm_font.render(f"Agent", 0, (255, 0, 0)), (320, WINDOW_HEIGHT - 80))
+        draw_outline(self.sm_font, f"Food", 260, RENDER_HEIGHT-80, surface)
+        surface.blit(self.sm_font.render(f"Food", 0, (255, 0, 0)), (260, RENDER_HEIGHT - 80))
+        
+        draw_outline(self.sm_font, f"Agent", 320, RENDER_HEIGHT-80, surface)
+        surface.blit(self.sm_font.render(f"Agent", 0, (255, 0, 0)), (320, RENDER_HEIGHT - 80))
 
         for i in range(2):
             img = Image.fromarray(self.smell_senses[i]).convert('RGB')
@@ -764,7 +786,7 @@ class Grid:
         self.width = width
         self.height = height
         self.padding = 1
-        self.square_size = int(WINDOW_WIDTH/GAME_GRID_WIDTH*0.8)
+        self.square_size = int(RENDER_WIDTH/GAME_GRID_WIDTH*0.8)
         self.grid_padding = self.calcGridPadding()
         self.calcGridSize()
 
@@ -887,7 +909,7 @@ class Grid:
     # Calculate the amount of padding needed for the current grid.
     def calcGridPadding(self):
         self.total_grid_x = self.width*self.padding + self.width*self.square_size
-        self.grid_padding = int((WINDOW_WIDTH - self.total_grid_x)/2)
+        self.grid_padding = int((RENDER_WIDTH - self.total_grid_x)/2)
         return self.grid_padding
 
     # Calculate a XY location for a given tile location
@@ -984,7 +1006,6 @@ class Grid:
         rect = self.elevation_map_img.get_rect().move((x,y))
         surface.blit(self.elevation_map_img, rect)
 
-
         self.drawGrid(surface)
 
 class GameManager:
@@ -994,11 +1015,10 @@ class GameManager:
         self.agents = []
         self.dead_agents = []
         self.plants = []
-        self.global_tick = 0
         
         self.addAgent()
-        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 12)
-        
+        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 16)
+        self.stat_font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 14)
         self.agents[0].select()
         self.main_agent = self.agents[0]
         for i in range(NUM_EVIL):
@@ -1018,12 +1038,14 @@ class GameManager:
         #print("Within getState of GameManager")
         attributes = self.__dict__.copy()
         del attributes['font']
+        del attributes['stat_font']
         return attributes
     
     def __setstate__(self, state):
         #print("Within setstate of GameManager")
         self.__dict__ = state
-        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 12)
+        self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 16)
+        self.stat_font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 14)
     
     def selectFromXY(self,x,y):
         calc_x, calc_y = self.grid.calcTileFromXY(x,y)
@@ -1064,28 +1086,33 @@ class GameManager:
         else:
             return None
 
-    def draw(self,game_window,simulation_runner_message=None):
-        self.grid.draw(game_window)
+    def draw(self,surface,simulation_runner_message=None):
+        self.grid.draw(surface)
+        
         # Draw plants
         for plant in self.plants:
             world_x, world_y = self.grid.calcXYLocation(plant.x,plant.y)
-            plant.draw(world_x, world_y, game_window)
+            plant.draw(world_x, world_y, surface)
 
         for agent in self.agents:
                 world_x, world_y = self.grid.calcXYLocation(agent.x,agent.y)
-                agent.draw(world_x, world_y, game_window)
+                agent.draw(world_x, world_y, surface)
         
-
-
         for agent in self.agents:
             if agent.selected:
                 self.main_agent = agent
+                
         labels_y_start = 470
-        game_window.blit(self.font.render(f"ID: {self.main_agent.id}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start))
-        game_window.blit(self.font.render(f"HEALTH: {round(self.main_agent.health,2)}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+20))
-
-        game_window.blit(self.font.render(f"ENERGY: {round(self.main_agent.energy,2)}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+40))
-        game_window.blit(self.font.render(f"SCORE:   {round(self.main_agent.score,2)}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+60))
+        
+        draw_outline(self.font, f"ID: {self.main_agent.id}", self.grid.grid_padding-32, labels_y_start, surface)
+        surface.blit(self.font.render(f"ID: {self.main_agent.id}", 0, (255, 0, 0)), (self.grid.grid_padding-32, labels_y_start))
+        draw_outline(self.font, f"HEALTH: {self.main_agent.health:.2f}", self.grid.grid_padding-32, labels_y_start+20, surface)
+        surface.blit(self.font.render(f"HEALTH: {self.main_agent.health:.2f}", 0, (255, 0, 0)), (self.grid.grid_padding-32, labels_y_start+20))
+        draw_outline(self.font, f"ENERGY: {self.main_agent.energy:.2f}", self.grid.grid_padding-32, labels_y_start+40, surface)
+        surface.blit(self.font.render(f"ENERGY: {self.main_agent.energy:.2f}", 0, (255, 0, 0)), (self.grid.grid_padding-32, labels_y_start+40))
+        draw_outline(self.font, f"SCORE:   {self.main_agent.score:.2f}", self.grid.grid_padding-32, labels_y_start+60, surface)
+        surface.blit(self.font.render(f"SCORE:   {self.main_agent.score:.2f}", 0, (255, 0, 0)), (self.grid.grid_padding-32, labels_y_start+60))
+        
         stats1 = {}
         stats2 = {}
         stats3 = {}
@@ -1093,27 +1120,33 @@ class GameManager:
         index = 0
         for key in self.main_agent.stats.stats:
             if index < 4:
-                stats1[key] = self.main_agent.stats.stats[key]
-            elif index < 8:
-                stats2[key] = self.main_agent.stats.stats[key]
+                stats1[key] = round(self.main_agent.stats.stats[key], 2)
+            elif index < 7:
+                stats2[key] = round(self.main_agent.stats.stats[key], 2)
             else:
-                stats3[key] = self.main_agent.stats.stats[key]
+                stats3[key] = round(self.main_agent.stats.stats[key], 2)
             index += 1
         
-        game_window.blit(self.font.render(f"{stats1}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+80))
-        game_window.blit(self.font.render(f"{stats2}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+100))
-        game_window.blit(self.font.render(f"{stats3}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
+        draw_outline(self.stat_font, f"{stats1}", self.grid.grid_padding-32, labels_y_start+80, surface)
+        surface.blit(self.stat_font.render(f"{stats1}", 0, (255, 0, 0)), (self.grid.grid_padding-32, labels_y_start+80))
+        draw_outline(self.stat_font, f"{stats2}", self.grid.grid_padding-32, labels_y_start+100, surface)
+        surface.blit(self.stat_font.render(f"{stats2}", 0, (255, 0, 0)), (self.grid.grid_padding-32, labels_y_start+100))
+        draw_outline(self.stat_font, f"{stats3}", self.grid.grid_padding-32, labels_y_start+120, surface)
+        surface.blit(self.stat_font.render(f"{stats3}", 0, (255, 0, 0)), (self.grid.grid_padding-32, labels_y_start+120))
 
         if simulation_runner_message is not None:
-            game_window.blit(self.font.render(simulation_runner_message, 0, (255, 0, 0)), (self.grid.grid_padding, 20))
- 
+            draw_outline(self.font, simulation_runner_message, self.grid.grid_padding, 15, surface)
+            surface.blit(self.font.render(simulation_runner_message, 0, (255, 0, 0)), (self.grid.grid_padding, 15))
+        
     def plantTick(self):
         for plant in self.plants:
             plant.tick()
 
     def agentTick(self,agent,move=None):
+        global HANDLED_TICK
         if agent.alive == False:
             return
+        
         agent.tick()
         if move == None:
             move = agent.choose_movement()
@@ -1145,18 +1178,22 @@ class GameManager:
                     else:
                         #if agent.pregnant >= 0:
                         #    agent.pregnant += 1
-                        if plant.energy > 10:
-                            agent.consume(10)
-                            plant.deplete(10)
+                        if plant.energy > agent.stats.stats['bite_size']:
+                            agent.consume(agent.stats.stats['bite_size'])
+                            plant.deplete(agent.stats.stats['bite_size'])
                         else:
                             agent.consume(plant.energy)
                             self.plants.remove(plant)
                             self.addPlant()
 
                 for target_agent in self.agents:
-                    if agent.x == target_agent.x and agent.y == target_agent.y:    
+                    if agent.id != target_agent.id and target_agent.alive and agent.x == target_agent.x and agent.y == target_agent.y:    
                         agent.attempt_mate(target_agent)
-
+                        if not target_agent.alive:
+                            if target_agent not in self.dead_agents:
+                                self.dead_agents.append(target_agent)
+                            self.agents.remove(target_agent)
+                            
                 # if agent.age >= AGE_OF_CONSENT and agent.pregnant == -1:
                 #     for target_agent in self.agents:
                 #         if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT and (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
@@ -1179,22 +1216,24 @@ class GameManager:
                             #if agent.pregnant >= 0:
                             #    agent.pregnant += 10
                             target_agent.deplete(bite)
+                            
                         else:
                             agent.consume(target_agent.energy)
                             #if agent.pregnant >= 0:
                             #    agent.pregnant += target_agent.energy
+                            target_agent.die()
                             if (target_agent.selected):
                                 for candidate in self.agents:
                                     if (candidate.type != ObjectType.EVIL and candidate.alive):
                                         candidate.select()
                                         break
                             target_agent.selected = False
-                            target_agent.death_tick = self.global_tick
-                            self.dead_agents.append(target_agent)
+                            if target_agent not in self.dead_agents:
+                                self.dead_agents.append(target_agent)
                             self.agents.remove(target_agent)
             
             for target_agent in self.agents:
-                if agent.x == target_agent.x and agent.y == target_agent.y:    
+                if agent.id != target_agent.id and target_agent.alive and agent.x == target_agent.x and agent.y == target_agent.y:    
                     agent.attempt_mate(target_agent)
             # if agent.age >= AGE_OF_CONSENT and agent.pregnant == -1:
             #     for target_agent in self.agents:
@@ -1215,7 +1254,7 @@ class GameManager:
 
         if agent.alive and agent.is_pregnant and agent.pregnant >= sum(agent.baby_stats.stats.values()):
             baby_x, baby_y = self.grid.calcRandNearby(agent.x, agent.y, 1)
-            baby = agent.give_birth(baby_x, baby_y, self.global_tick)
+            baby = agent.give_birth(baby_x, baby_y, HANDLED_TICK)
             
             self.agents.append(baby)
             baby.sense.update(baby.x, baby.y, self.grid, self.agents,self.plants)
@@ -1226,8 +1265,9 @@ class GameManager:
         #agent.age += 1
 
 
-    def logicTick(self,g_tick,player_move=None,draw_func=None):
-        self.global_tick = g_tick
+    def logicTick(self,tick_num=None,player_move=None,draw_func=None):
+        global HANDLED_TICK
+        HANDLED_TICK = tick_num
         random.shuffle(self.plants)
         self.plantTick()
 
@@ -1255,6 +1295,8 @@ class GameManager:
                             run_ids.append(agent.id)
                             # Greedy approach to ensure complete enumeration of agents; quadratic complexity
                             total_agent_ids.extend([curr_agent.id for curr_agent in self.agents if ((curr_agent.id not in total_agent_ids) and curr_agent.alive)])
+                            if ((not agent.alive) and (tick_num is not None)):
+                                agent.death_tick = tick_num
         except Exception as e:
             traceback.print_exc()
             print("ERROR IN LOGICTICK!")

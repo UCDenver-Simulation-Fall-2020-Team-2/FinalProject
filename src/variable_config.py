@@ -1,5 +1,6 @@
 import pygame as pg
 from pygame import Color
+from pygame.locals import *
 
 # Simulation FPS
 FPS_LIST = [1,2,5,10,60,100,150,1000]
@@ -14,13 +15,17 @@ DEFAULT_SKIP_SELECTION = 4
 
 SIMULATION_RUNNER_ALWAYS_HAVE_SELECTED_AGENT = True
 
+# Render width and height
+RENDER_WIDTH = 500
+RENDER_HEIGHT = 700
+
 # Window width and height
-WINDOW_WIDTH = 500
-WINDOW_HEIGHT = 700
+WINDOW_WIDTH = 1000
+WINDOW_HEIGHT = 1000
 
 # How many tiles should the grid have horizontally and vertically?
 # CURRENTLY ALL GRIDS MUST BE SQUARE
-GAME_GRID_WIDTH = 10
+GAME_GRID_WIDTH = 20
 GAME_GRID_HEIGHT = GAME_GRID_WIDTH
 
 # Total number of spaces 
@@ -71,9 +76,9 @@ MAX_SAVED_GAME_STATES = MAX_ENERGY
 
 SMELL_DIST = 10
 
-SQUARE_SIZE = int(WINDOW_WIDTH/GAME_GRID_WIDTH*0.8)
+SQUARE_SIZE = int(RENDER_WIDTH/GAME_GRID_WIDTH*0.8)
 
-NUM_AGENTS = 5
+NUM_AGENTS = 20
 
 NUM_EVIL = 5
 
