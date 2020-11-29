@@ -1075,8 +1075,6 @@ class GameManager:
                 world_x, world_y = self.grid.calcXYLocation(agent.x,agent.y)
                 agent.draw(world_x, world_y, game_window)
         
-
-
         for agent in self.agents:
             if agent.selected:
                 self.main_agent = agent
@@ -1114,6 +1112,7 @@ class GameManager:
     def agentTick(self,agent,move=None):
         if agent.alive == False:
             return
+        
         agent.tick()
         if move == None:
             move = agent.choose_movement()
@@ -1145,18 +1144,23 @@ class GameManager:
                     else:
                         #if agent.pregnant >= 0:
                         #    agent.pregnant += 1
-                        if plant.energy > 10:
-                            agent.consume(10)
-                            plant.deplete(10)
+                        if plant.energy > agent.stats.stats['bite_size']:
+                            agent.consume(agent.stats.stats['bite_size'])
+                            plant.deplete(agent.stats.stats['bite_size'])
                         else:
                             agent.consume(plant.energy)
                             self.plants.remove(plant)
                             self.addPlant()
 
                 for target_agent in self.agents:
-                    if agent.x == target_agent.x and agent.y == target_agent.y:    
+                    if agent.id != target_agent.id and target_agent.alive and agent.x == target_agent.x and agent.y == target_agent.y:    
                         agent.attempt_mate(target_agent)
-
+                        if not target_agent.alive:
+                            target_agent.death_tick = self.global_tick
+                            if target_agent not in self.dead_agents:
+                                self.dead_agents.append(target_agent)
+                            self.agents.remove(target_agent)
+                            
                 # if agent.age >= AGE_OF_CONSENT and agent.pregnant == -1:
                 #     for target_agent in self.agents:
                 #         if target_agent.id != agent.id and target_agent.type == agent.type and target_agent.pregnant == -1 and target_agent.alive and target_agent.age >= AGE_OF_CONSENT and (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
@@ -1179,10 +1183,12 @@ class GameManager:
                             #if agent.pregnant >= 0:
                             #    agent.pregnant += 10
                             target_agent.deplete(bite)
+                            
                         else:
                             agent.consume(target_agent.energy)
                             #if agent.pregnant >= 0:
                             #    agent.pregnant += target_agent.energy
+                            target_agent.die()
                             if (target_agent.selected):
                                 for candidate in self.agents:
                                     if (candidate.type != ObjectType.EVIL and candidate.alive):
@@ -1190,11 +1196,12 @@ class GameManager:
                                         break
                             target_agent.selected = False
                             target_agent.death_tick = self.global_tick
-                            self.dead_agents.append(target_agent)
+                            if target_agent not in self.dead_agents:
+                                self.dead_agents.append(target_agent)
                             self.agents.remove(target_agent)
             
             for target_agent in self.agents:
-                if agent.x == target_agent.x and agent.y == target_agent.y:    
+                if agent.id != target_agent.id and target_agent.alive and agent.x == target_agent.x and agent.y == target_agent.y:    
                     agent.attempt_mate(target_agent)
             # if agent.age >= AGE_OF_CONSENT and agent.pregnant == -1:
             #     for target_agent in self.agents:

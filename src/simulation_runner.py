@@ -217,54 +217,64 @@ def writeSimData(game_manager):
         'intelligence' : [], 'endurance' : [], 'strength' : [], 'fertility' : [], 'bite_size' : [], 'ticks' : GLOBAL_TICK
     }
 
-    all_agents = game_manager.getAgents()
-    dead_agents = game_manager.getDeadAgents()
-    all_agents.extend(dead_agents)
-    
-    for agent in all_agents:
-        # Attributes
-        data_dict['id'].append(agent.id)
-        data_dict['type'].append(agent.type)
-        data_dict['health'].append(agent.health)
-        data_dict['energy'].append(agent.energy)
-        data_dict['score'].append(agent.score)
-        # For initial agents age of consent offset
-        if agent.id < NUM_AGENTS + NUM_EVIL:
-            data_dict['age'].append(agent.age-100)
-        else:
-            data_dict['age'].append(agent.age)
-        data_dict['alive'].append(agent.alive)
-        data_dict['max_energy'].append(agent.max_energy)
-        data_dict['mate_id'].append(agent.mate.id) if agent.mate else data_dict['mate_id'].append(-1)
-        data_dict['pregnant'].append(agent.pregnant)
-        data_dict['is_pregnant'].append(agent.is_pregnant)
-        data_dict['last_pregnant_age'].append(agent.last_pregnant_age)
-        data_dict['mating_cooldown'].append(agent.mating_cooldown)
-        data_dict['mating_cooldown_max'].append(agent.mating_cooldown_max)
-        data_dict['good_choice_chance'].append(agent.good_choice_chance)
-        data_dict['children'].append(agent.children)
-        data_dict['birth_tick'].append(agent.birth_tick)
-        data_dict['death_tick'].append(agent.death_tick)
-        # Sense
-        data_dict['sight_range'].append(agent.sense.sight_range)
-        data_dict['smell_range'].append(agent.sense.smell_range)
-        # Stats
-        data_dict['gene_avg'].append(agent.stats.gene_avg)
-        data_dict['gene_cap'].append(agent.stats.gene_cap)
-        data_dict['gene_min'].append(agent.stats.gene_min)
-        data_dict['gene_stability'].append(agent.stats.stats['gene_stability'])
-        data_dict['speed'].append(agent.stats.stats['speed'])
-        data_dict['agility'].append(agent.stats.stats['agility'])
-        data_dict['intelligence'].append(agent.stats.stats['intelligence'])
-        data_dict['endurance'].append(agent.stats.stats['endurance'])
-        data_dict['strength'].append(agent.stats.stats['strength'])
-        data_dict['fertility'].append(agent.stats.stats['fertility'])
-        data_dict['bite_size'].append(agent.stats.stats['bite_size'])
 
+    agent_lists = [game_manager.getAgents(), game_manager.getDeadAgents()]
+    for agent_list in agent_lists:
+        for agent in agent_list:
+            # Attributes
+            data_dict['id'].append(agent.id)
+            data_dict['type'].append(agent.type)
+            data_dict['health'].append(agent.health)
+            data_dict['energy'].append(agent.energy)
+            data_dict['score'].append(agent.score)
+            # For initial agents age of consent offset
+            if agent.id < NUM_AGENTS + NUM_EVIL:
+                data_dict['age'].append(agent.age-100)
+            else:
+                data_dict['age'].append(agent.age)
+            data_dict['alive'].append(agent.alive)
+            data_dict['max_energy'].append(agent.max_energy)
+            data_dict['mate_id'].append(agent.mate.id) if agent.mate else data_dict['mate_id'].append(-1)
+            data_dict['pregnant'].append(agent.pregnant)
+            data_dict['is_pregnant'].append(agent.is_pregnant)
+            data_dict['last_pregnant_age'].append(agent.last_pregnant_age)
+            data_dict['mating_cooldown'].append(agent.mating_cooldown)
+            data_dict['mating_cooldown_max'].append(agent.mating_cooldown_max)
+            data_dict['good_choice_chance'].append(agent.good_choice_chance)
+            data_dict['children'].append(agent.children)
+            data_dict['birth_tick'].append(agent.birth_tick)
+            data_dict['death_tick'].append(agent.death_tick)
+            # Sense
+            data_dict['sight_range'].append(agent.sense.sight_range)
+            data_dict['smell_range'].append(agent.sense.smell_range)
+            # Stats
+            data_dict['gene_avg'].append(agent.stats.gene_avg)
+            data_dict['gene_cap'].append(agent.stats.gene_cap)
+            data_dict['gene_min'].append(agent.stats.gene_min)
+            data_dict['gene_stability'].append(agent.stats.stats['gene_stability'])
+            data_dict['speed'].append(agent.stats.stats['speed'])
+            data_dict['agility'].append(agent.stats.stats['agility'])
+            data_dict['intelligence'].append(agent.stats.stats['intelligence'])
+            data_dict['endurance'].append(agent.stats.stats['endurance'])
+            data_dict['strength'].append(agent.stats.stats['strength'])
+            data_dict['fertility'].append(agent.stats.stats['fertility'])
+            data_dict['bite_size'].append(agent.stats.stats['bite_size'])
+
+    
     write_path = path.join(ABS_PATH, 'stat_data', 'agent_data.csv')
     os.makedirs(os.path.dirname(write_path), exist_ok=True)
-    pd.DataFrame(data_dict).to_csv(write_path, index=False, mode="w+")
-
+    
+    successfully_wrote_file = False
+    error_message_lock = False
+    while (not successfully_wrote_file):            
+        try:
+            pd.DataFrame(data_dict).to_csv(write_path, index=False, mode="w+")
+            successfully_wrote_file = True
+        except Exception as e:
+            if (not error_message_lock):
+                error_message_lock = True
+                print("ERROR: File currently open. Waiting for close...")
+                
 def GameLoop():
     global ARR_GAME_STATES
     global GLOBAL_TICK
