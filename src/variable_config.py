@@ -2,6 +2,9 @@ import pygame as pg
 from pygame import Color
 from pygame.locals import *
 
+#--------------------------------------------------------
+# Runtime variables
+#--------------------------------------------------------
 # Simulation FPS
 FPS_LIST = [1,2,5,10,60,100,150,1000]
 FPS_SELECTION = 7 # Index corresponding to available option from FPS_LIST
@@ -12,7 +15,7 @@ SKIP_LIST = [0,5,10,20]
 SKIP_SELECTION = 0 # Index corresponding to available option from SKIP_LIST
 DEFAULT_SKIP_SELECTION = 4
 
-
+# Selects a new agent automatically if the currently selected agent is removed from the simulation
 SIMULATION_RUNNER_ALWAYS_HAVE_SELECTED_AGENT = True
 
 # Render width and height
@@ -47,40 +50,34 @@ DEATH_PENALTY = True
 # Self explanatory
 BACKGROUND_COLOR = Color("#505050")
 PAUSED_BACKGROUND_COLOR = Color("#303030")
+NUM_AGENTS = 20
+NUM_EVIL = 5
+SMELL_DIST = 10
 
+# What is the maximum amount of energy that a player can have?
+MAX_ENERGY = GAME_GRID_WIDTH * 5
 
+# The number of food pieces that will spawn each time there is no food
+# on the grid.
+MAX_NUM_FOOD_ON_GRID = int(NUM_SPACES / 20)
 
 # Used to determine how many frames are skipped.
 # Helps when you want the gamelogic to move faster than
 # Your system can draw it.
 SKIP_FRAMES = 0
 
-# The number of food pieces that will spawn each time there is no food
-# on the grid.
-MAX_NUM_FOOD_ON_GRID = int(NUM_SPACES / 20)
-
-if MAX_NUM_FOOD_ON_GRID <= 1:
-    MAX_NUM_FOOD_ON_GRID = 1
+# Determine if agents shouldn't be able to see further than they can smell; 
+#  If True, only go off the scent matrix
+SKIP_SIGHT = False
 
 # How much food needs to be found before a round ends?
 FOOD_PER_ROUND = MAX_NUM_FOOD_ON_GRID * 5
-
-# What is the maximum amount of energy that a player can have?
-MAX_ENERGY = GAME_GRID_WIDTH * 5
 
 # What is the maximum amount of health that a player can have?
 MAX_HEALTH = 100
 
 # Maximum number of game states that can be saved per round
 MAX_SAVED_GAME_STATES = MAX_ENERGY
-
-SMELL_DIST = 10
-
-SQUARE_SIZE = int(RENDER_WIDTH/GAME_GRID_WIDTH*0.8)
-
-NUM_AGENTS = 20
-
-NUM_EVIL = 5
 
 # Defines how smart the non-student agents are.
 # A value between 0 and 1, where a lower value means the 
@@ -103,7 +100,16 @@ AGE_OF_CONSENT = 100
 PREGNANCY_COOLDOWN = 100
 
 VERBOSE = True
+#--------------------------------------------------------
 
+#--------------------------------------------------------
+# UNMODIFIABLE (simulation predicated upon these initial values to work)
+#--------------------------------------------------------
+SQUARE_SIZE = int(RENDER_WIDTH/GAME_GRID_WIDTH*0.8)
+
+if MAX_NUM_FOOD_ON_GRID <= 1:
+    MAX_NUM_FOOD_ON_GRID = 1
+    
 SIMULATION_RUNNER_PAUSED = False
 SIMULATION_RUNNER_PAUSE_LOCK = False
 SIMULATION_RUNNER_TERMINATING = False
@@ -114,5 +120,4 @@ selected_id = None
 
 clock = pg.time.Clock()
 delta_time = 0
-
-SKIP_SIGHT = False
+#--------------------------------------------------------

@@ -239,6 +239,7 @@ def writeSimData(game_manager):
     all_agents = game_manager.getAgents()
     dead_agents = game_manager.getDeadAgents()
     all_agents.extend(dead_agents)
+    
     for agent in all_agents:
         if agent.type == ObjectType.EVIL :
             carn_data_dict['id'].append(agent.id)
@@ -260,9 +261,6 @@ def writeSimData(game_manager):
             herb_data_dict['strength'].append(agent.stats.stats['strength'])
             herb_data_dict['fertility'].append(agent.stats.stats['fertility'])
             herb_data_dict['bite_size'].append(agent.stats.stats['bite_size'])
-             
-    for agent in all_agents:
-        # Attributes
         data_dict['id'].append(agent.id)
         data_dict['type'].append(agent.type)
         data_dict['health'].append(agent.health)
