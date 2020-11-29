@@ -267,6 +267,7 @@ class Agent(GameObject):
         self.is_pregnant = False
         self.mating_cooldown = 0
         self.mating_cooldown_max = 5
+        self.children = 0
         
     def __setstate__(self, state):
         self.__dict__ = state
@@ -434,6 +435,9 @@ class Agent(GameObject):
         self.baby_stats = None
         baby.energy = PREGNANCY_FOOD_GOAL
         self.deplete(PREGNANCY_FOOD_GOAL)
+        self.children += 1
+        if self.mate != None:
+            self.mate.children += 1
         return baby
 
 class EvilAgent(Agent):
