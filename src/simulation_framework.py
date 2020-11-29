@@ -1246,10 +1246,7 @@ class GameManager:
                         rand = random.randint(0,10)
                         if rand <= agent.stats.stats["agility"]:
                             for i in range(agent.stats.getNumMoves()):
-                                if g_tick != None:
-                                    self.agentTick(agent, g_tick=global_tick)
-                                else:
-                                    self.agentTick(agent)
+                                self.agentTick(agent)
                                 if draw_func != None:
                                     draw_func()
                             agent.age += 1
@@ -1259,7 +1256,7 @@ class GameManager:
         except Exception as e:
             traceback.print_exc()
             print("ERROR IN LOGICTICK!")
-            exit(9)
+            sys.exit(9)
                      
         # Returns the ID for bookkeeping from the simulation runner/driver program
         if self.main_agent:
