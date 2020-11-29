@@ -436,6 +436,8 @@ class Agent(GameObject):
         baby.energy = PREGNANCY_FOOD_GOAL
         self.deplete(PREGNANCY_FOOD_GOAL)
         self.children += 1
+        if self.mate != None:
+            self.mate.children += 1
         return baby
 
 class EvilAgent(Agent):
