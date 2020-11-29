@@ -269,6 +269,7 @@ class Agent(GameObject):
         self.mating_cooldown_max = 5
         self.children = 0
         self.birth_tick = birth_tick
+        self.death_tick = -1
               
     def __setstate__(self, state):
         self.__dict__ = state
@@ -1188,6 +1189,7 @@ class GameManager:
                                         candidate.select()
                                         break
                             target_agent.selected = False
+                            target_agent.death_tick = self.global_tick
                             self.dead_agents.append(target_agent)
                             self.agents.remove(target_agent)
             
