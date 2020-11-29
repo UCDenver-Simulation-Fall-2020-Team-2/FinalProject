@@ -74,6 +74,7 @@ def total_population_time(frame):
 
 def species_population_time(frame):
     x = np.zeros(frame['ticks'][0])
+    y_tot = np.zeros(frame['ticks'][0])
     y_evil = np.zeros(frame['ticks'][0])
     y_neutral = np.zeros(frame['ticks'][0])
     for i in range(x.size):
@@ -82,12 +83,14 @@ def species_population_time(frame):
             age = frame['age'][j]
             birth = frame['birth_tick'][j]
             # If alive at time tick
-            if birth <= i and age + birth+1 >= i:
+            if birth <= i and age + birth+1 >= i: 
+                y_tot[i] += 1
                 if frame['type'][j] == 'ObjectType.NEUTRAL':
                     y_neutral[i] += 1
                 else:
                     y_evil[i] += 1
     fig, ax = plt.subplots()
+    ax.plot(x, y_tot, label='Total')
     ax.plot(x, y_evil, label='Evil')
     ax.plot(x, y_neutral, label='Neutral')
     ax.grid()
