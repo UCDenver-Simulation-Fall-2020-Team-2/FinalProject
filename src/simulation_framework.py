@@ -124,27 +124,6 @@ class GameState():
             sys.exit(9)
         return game_manager
 
-    # Writes round data to .csv files in /stat_data
-    def writeRoundData(self, dead_players=None):
-        data_dict = {'ID' : [], 'Parent' : [], 'Food Eaten' : [], 'Energy' : [], 'Score' : [], 'Alive?' : []}
-        if dead_players:
-            for player in dead_players:
-                data_dict['ID'].append(player.id)
-                data_dict['Parent'].append(player.child_of)
-                data_dict['Food Eaten'].append(player.food_eaten)
-                data_dict['Energy'].append(player.energy)
-                data_dict['Score'].append(player.score)
-                data_dict['Alive?'].append(player.alive)
-        for player in self.game_grid.player:
-            data_dict['ID'].append(player.id)
-            data_dict['Parent'].append(player.child_of)
-            data_dict['Food Eaten'].append(player.food_eaten)
-            data_dict['Energy'].append(player.energy)
-            data_dict['Score'].append(player.score)
-            data_dict['Alive?'].append(player.alive)
-
-        pd.DataFrame(data_dict).to_csv(path.join(ABS_PATH, 'stat_data', f'agent_stats_round{self.round}.csv'), index=False)
-
 # class SensoryMatrix:
 class GameObject:
     """ TODO: ADD DOCSTRING """
@@ -1004,6 +983,7 @@ class GameManager:
     def __init__(self,width,height):
         self.grid = Grid(height, width)
         self.agents = []
+        self.dead_agents = []
         self.plants = []
         
         self.addAgent()
@@ -1199,6 +1179,7 @@ class GameManager:
                                         candidate.select()
                                         break
                             target_agent.selected = False
+                            self.dead_agents.append(target_agent)
                             self.agents.remove(target_agent)
             
             for target_agent in self.agents:
@@ -1277,12 +1258,18 @@ class GameManager:
         agent = EvilAgent(x,y)
         self.agents.append(agent)
 
-    def setOccupiedGrid():
+    def setOccupiedGrid(self):
         self.grid.occupied_grid = np.zeros((GAME_GRID_WIDTH,GAME_GRID_HEIGHT))
         for plant in self.plants:
             self.grid.occupied_grid[plant.x][plant.y] = ObjectType.PLANT
         for agent in self.agents:
             self.grid.occupied_grid[agent.x][agent.y] = agent.type
+
+    def getAgents(self):
+        return self.agents
+
+    def getDeadAgents(self):
+        return self.dead_agents
 
 # All simple mouse does is pick a random direction, and moves there.
 # Quite senseless, if you ask me.

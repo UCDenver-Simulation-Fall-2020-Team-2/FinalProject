@@ -1,3 +1,4 @@
+import pandas as pd
 from simulation_framework import *
 from variable_config import *
 
@@ -20,6 +21,8 @@ GLOBAL_TICK = 0
 SAVE_STATES = True
 
 TURN_VIEW = True
+
+ABS_PATH = path.dirname(path.realpath(__file__))
 
 pg.init()
 game_manager = None
@@ -197,7 +200,60 @@ def check_events():
             mpos = pg.mouse.get_pos()
             selected_id = game_manager.selectFromXY(mpos[0], mpos[1])
             SIMULATION_RUNNER_SIGNAL_REDRAW = True
-        
+
+def writeSimData(game_manager):
+    data_dict = {
+        # Attributes
+        'id' : [], 'type' : [], 'health' : [], 'energy' : [], 'score' : [], 'age' : [], 'alive' : [],
+        'max_energy' : [], 'mate_id' : [], 'pregnant' : [], 'is_pregnant' : [], 'last_pregnant_age' : [],
+        'mating_cooldown' : [], 'mating_cooldown_max' : [], 'good_choice_chance' : [],
+        # Sense
+        'sight_range' : [], 'smell_range' : [],
+        # Stats
+        'gene_avg' : [], 'gene_cap' : [], 'gene_min' : [], 'gene_stability' : [], 'speed' : [], 'agility' : [], 
+        'intelligence' : [], 'endurance' : [], 'strength' : [], 'fertility' : [], 'bite_size' : []
+    }
+
+    all_agents = game_manager.getAgents()
+    dead_agents = game_manager.getDeadAgents()
+    all_agents.extend(dead_agents)
+    
+    for agent in all_agents:
+        # Attributes
+        data_dict['id'].append(agent.id)
+        data_dict['type'].append(agent.type)
+        data_dict['health'].append(agent.health)
+        data_dict['energy'].append(agent.energy)
+        data_dict['score'].append(agent.score)
+        data_dict['age'].append(agent.age)
+        data_dict['alive'].append(agent.alive)
+        data_dict['max_energy'].append(agent.max_energy)
+        data_dict['mate_id'].append(agent.mate.id) if agent.mate else data_dict['mate_id'].append(-1)
+        data_dict['pregnant'].append(agent.pregnant)
+        data_dict['is_pregnant'].append(agent.is_pregnant)
+        data_dict['last_pregnant_age'].append(agent.last_pregnant_age)
+        data_dict['mating_cooldown'].append(agent.mating_cooldown)
+        data_dict['mating_cooldown_max'].append(agent.mating_cooldown_max)
+        data_dict['good_choice_chance'].append(agent.good_choice_chance)
+        # Sense
+        data_dict['sight_range'].append(agent.sense.sight_range)
+        data_dict['smell_range'].append(agent.sense.smell_range)
+        # Stats
+        data_dict['gene_avg'].append(agent.stats.gene_avg)
+        data_dict['gene_cap'].append(agent.stats.gene_cap)
+        data_dict['gene_min'].append(agent.stats.gene_min)
+        data_dict['gene_stability'].append(agent.stats.stats['gene_stability'])
+        data_dict['speed'].append(agent.stats.stats['speed'])
+        data_dict['agility'].append(agent.stats.stats['agility'])
+        data_dict['intelligence'].append(agent.stats.stats['intelligence'])
+        data_dict['endurance'].append(agent.stats.stats['endurance'])
+        data_dict['strength'].append(agent.stats.stats['strength'])
+        data_dict['fertility'].append(agent.stats.stats['fertility'])
+        data_dict['bite_size'].append(agent.stats.stats['bite_size'])
+
+    write_path = path.join(ABS_PATH, 'stat_data', 'agent_data.csv')
+    pd.DataFrame(data_dict).to_csv(write_path, index=False)
+
 def GameLoop():
     global ARR_GAME_STATES
     global GLOBAL_TICK
@@ -232,10 +288,11 @@ def GameLoop():
         if SIMULATION_RUNNER_PAUSED and SIMULATION_RUNNER_PAUSE_LOCK:
             SIMULATION_RUNNER_PAUSE_LOCK = False
             print("Paused the simulation!")
+
+    writeSimData(ARR_GAME_STATES[-1][1].restore())
+    
     print("Simulation ending. Goodbye!")
     pg.display.quit()
     pg.quit()
     
-
-
 GameLoop()

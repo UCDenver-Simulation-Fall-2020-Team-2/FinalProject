@@ -1,15 +1,10 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+from simulation_framework import *
 from matplotlib.ticker import FormatStrFormatter
-from os import path
 
 ABS_PATH = path.dirname(path.realpath(__file__))
-
-rnd_data = []
-food_eaten = []
-scores = []
-energy = []
 
 #DrawHist- Draws a Histogram that includes more labels along the x-axis such as the values at the edge of each bar, the percentage of buddies in the bar
 #and the value at the center of each bar
@@ -52,6 +47,15 @@ def DrawHist(data_set, title, yLabel):
     plt.show()
 
 
+read_path = path.join(ABS_PATH, 'stat_data', 'agent_data.p')
+if path.exists(read_path):
+    with open(read_path, 'rb') as read_file:
+        agents = pickle.load(read_file)
+
+rnd_data = []
+food_eaten = []
+scores = []
+energy = []
 
 i = 1
 while path.exists(path.join(ABS_PATH, 'stat_data', f'agent_stats_round{i}.csv')):
