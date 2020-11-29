@@ -6,6 +6,13 @@ from os import path
 
 ABS_PATH = path.dirname(path.realpath(__file__))
 
+def read_data():
+    frame = None
+    read_path = path.join(ABS_PATH, 'stat_data', 'agent_data.csv')
+    if path.exists(read_path):
+        frame = pd.read_csv(read_path)
+    return frame
+
 #DrawHist- Draws a Histogram that includes more labels along the x-axis such as the values at the edge of each bar, the percentage of buddies in the bar
 #and the value at the center of each bar
 #The bars will also be coloured depending upon the side of the graph 
@@ -46,15 +53,18 @@ def DrawHist(data_set, title, yLabel):
     plt.subplots_adjust(bottom=0.15)
     plt.show()
 
-def read_data():
-    frame = None
-    read_path = path.join(ABS_PATH, 'stat_data', 'agent_data.csv')
-    if path.exists(read_path):
-        frame = pd.read_csv(read_path)
-    return frame
+def population_time(frame):
+    x = np.zeros(frame['ticks'][0])
+    y = np.zeros(frame['ticks'][0])
+    for i in range(x.size):
+        pass
+        
+
+
 
 def run_analysis():
     frame = read_data()
+    population_time(frame)
 
     if frame is not None:
         DrawHist(frame.loc[:, 'health'], "Health of Buddies", "Number of Buddies")
