@@ -206,7 +206,7 @@ def writeSimData(game_manager):
         # Attributes
         'id' : [], 'type' : [], 'health' : [], 'energy' : [], 'score' : [], 'age' : [], 'alive' : [],
         'max_energy' : [], 'mate_id' : [], 'pregnant' : [], 'is_pregnant' : [], 'last_pregnant_age' : [],
-        'mating_cooldown' : [], 'mating_cooldown_max' : [], 'good_choice_chance' : [],
+        'mating_cooldown' : [], 'mating_cooldown_max' : [], 'good_choice_chance' : [], 'children' : [],
         # Sense
         'sight_range' : [], 'smell_range' : [],
         # Stats
@@ -235,6 +235,7 @@ def writeSimData(game_manager):
         data_dict['mating_cooldown'].append(agent.mating_cooldown)
         data_dict['mating_cooldown_max'].append(agent.mating_cooldown_max)
         data_dict['good_choice_chance'].append(agent.good_choice_chance)
+        data_dict['children'].append(agent.children)
         # Sense
         data_dict['sight_range'].append(agent.sense.sight_range)
         data_dict['smell_range'].append(agent.sense.smell_range)
