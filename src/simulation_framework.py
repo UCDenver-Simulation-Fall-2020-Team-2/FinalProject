@@ -233,7 +233,7 @@ class Plant(GameObject):
         return i
 
 class Agent(GameObject):
-    def __init__(self,x=None,y=None,raw_img_path=None,parent_1=None,parent_2=None,stats=None):
+    def __init__(self,x=None,y=None,raw_img_path=None,parent_1=None,parent_2=None,stats=None,birth_tick=0):
         global AGENT_ID
         self.sprite_path = path.join(ABS_PATH, "art_assets","agent_faces","neutral")
         if raw_img_path is None:
@@ -268,7 +268,7 @@ class Agent(GameObject):
         self.mating_cooldown = 0
         self.mating_cooldown_max = 5
         self.children = 0
-        self.death_tick = 0
+        self.birth_tick = birth_tick
               
     def __setstate__(self, state):
         self.__dict__ = state
@@ -324,14 +324,11 @@ class Agent(GameObject):
 
         self.score += energy * health_score * energy_score
 
-    def tick(self, g_tick=None):
+    def tick(self):
         if self.mating_cooldown > 0:
             self.mating_cooldown -= 1
         if self.energy <= 0 or self.health <= 0:
-            if g_tick != None:
-                self.die(dth_tick=g_tick)
-            else:
-                self.die()
+            self.die()
 
         if self.selected and self.alive:
             self.heal()
@@ -362,7 +359,7 @@ class Agent(GameObject):
             self.deplete(1)
             self.calc_color()
 
-    def die(self,dth_tick=None):
+    def die(self):
         # self.raw_img_path = path.join(ABS_PATH, "art_assets","agent_faces","agent_faces_dead")
         # self.calc_img_path(self.raw_img_path)
         # self.loadImg(self.img_path)
@@ -371,8 +368,6 @@ class Agent(GameObject):
             blue = 255
         self.img.fill(pg.Color(255,0,blue,1),special_flags=pg.BLEND_MIN)
         self.alive = False
-        if dth_tick != None:
-            self.death_tick = dth_tick
 
     def select(self):
         self.selected = True
@@ -385,16 +380,13 @@ class Agent(GameObject):
         
         self.img.fill(pg.Color(255,255-red_color,255-red_color,1),special_flags=pg.BLEND_MIN)
 
-    def take_damage(self, damage,g_tick=None):
+    def take_damage(self, damage):
         hit = damage*(self.stats.stats["endurance"]/self.stats.gene_cap)
         self.health -= hit
         if self.health >= 0:
             self.calc_color()
         else:
-            if g_tick != None:
-                self.die(dth_tick=g_tick)
-            else:
-                self.die()
+            self.die()
 
         return hit
     
@@ -422,7 +414,7 @@ class Agent(GameObject):
                         mate.baby_stats = AgentStats(parent_1=self,parent_2=mate)
                         self.mating_cooldown = self.mating_cooldown_max
     
-    def give_birth(self,x,y):
+    def give_birth(self,x,y,g_tick):
         self.is_pregnant = False
         self.pregnant = -1
         self.last_pregnant_age = self.age
@@ -430,15 +422,15 @@ class Agent(GameObject):
         
         if (self.type != ObjectType.EVIL):
             if self.mate != None:
-                baby = Agent(x, y,stats=self.baby_stats)
+                baby = Agent(x, y,stats=self.baby_stats,birth_tick=g_tick)
             else:
-                baby = Agent(x, y,parent_1=self,parent_2=self)
+                baby = Agent(x, y,parent_1=self,parent_2=self,birth_tick=g_tick)
 
         else:
             if self.mate != None:
-                baby = EvilAgent(x, y,parent_1=self,parent_2=self.mate)
+                baby = EvilAgent(x, y,parent_1=self,parent_2=self.mate,birth_tick=g_tick)
             else:
-                baby = EvilAgent(x, y,parent_1=self,parent_2=self)
+                baby = EvilAgent(x, y,parent_1=self,parent_2=self,birth_tick=g_tick)
         
         self.mate = None
         self.baby_stats = None
@@ -450,7 +442,7 @@ class Agent(GameObject):
         return baby
 
 class EvilAgent(Agent):
-    def __init__(self,x=None,y=None,parent_1=None,parent_2=None):
+    def __init__(self,x=None,y=None,parent_1=None,parent_2=None,birth_tick=0):
         self.raw_img_path = None
         super().__init__(x,y,parent_1=parent_1,parent_2=parent_2)
         self.sprite_path = path.join(ABS_PATH, "art_assets","agent_faces","evil")
@@ -460,6 +452,7 @@ class EvilAgent(Agent):
         self.sense.type = ObjectType.EVIL
         self.max_energy = MAX_ENERGY * 2
         self.energy = self.max_energy
+        self.birth_tick = birth_tick
     
     def choose_movement(self):
         move = random.randint(0,8)
@@ -998,6 +991,7 @@ class GameManager:
         self.agents = []
         self.dead_agents = []
         self.plants = []
+        self.global_tick = 0
         
         self.addAgent()
         self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 12)
@@ -1114,13 +1108,10 @@ class GameManager:
         for plant in self.plants:
             plant.tick()
 
-    def agentTick(self,agent,move=None, g_tick=None):
+    def agentTick(self,agent,move=None):
         if agent.alive == False:
             return
-        if g_tick != None:
-            agent.tick(g_tick=g_tick)
-        else:
-            agent.tick()
+        agent.tick()
         if move == None:
             move = agent.choose_movement()
 
@@ -1176,10 +1167,7 @@ class GameManager:
                     if target_agent.alive:
                         if agent.id != target_agent.id and agent.x == target_agent.x and agent.y == target_agent.y:
                             hit_strength = agent.stats.stats["strength"]+agent.stats.stats["bite_size"]
-                            if g_tick != None:
-                                damage = target_agent.take_damage(hit_strength, g_tick=g_tick)
-                            else:
-                                damage = target_agent.take_damage(hit_strength)
+                            damage = target_agent.take_damage(hit_strength)
                             agent.consume(damage)
                     else:
                         bite = agent.stats.stats["bite_size"]
@@ -1223,7 +1211,7 @@ class GameManager:
 
         if agent.alive and agent.is_pregnant and agent.pregnant >= sum(agent.baby_stats.stats.values()):
             baby_x, baby_y = self.grid.calcRandNearby(agent.x, agent.y, 1)
-            baby = agent.give_birth(baby_x, baby_y)
+            baby = agent.give_birth(baby_x, baby_y, self.global_tick)
             
             self.agents.append(baby)
             baby.sense.update(baby.x, baby.y, self.grid, self.agents,self.plants)
@@ -1234,7 +1222,8 @@ class GameManager:
         #agent.age += 1
 
 
-    def logicTick(self,player_move=None,draw_func=None,g_tick=None):        
+    def logicTick(self,g_tick,player_move=None,draw_func=None):
+        self.global_tick = g_tick
         random.shuffle(self.plants)
         self.plantTick()
 
@@ -1252,10 +1241,7 @@ class GameManager:
                     rand = random.randint(0,10)
                     if rand <= agent.stats.stats["agility"]:
                         for i in range(agent.stats.getNumMoves()):
-                            if g_tick != None:
-                                self.agentTick(agent, g_tick=g_tick)
-                            else:
-                                self.agentTick(agent)
+                            self.agentTick(agent)
                             if draw_func != None:
                                 draw_func()
                         agent.age += 1

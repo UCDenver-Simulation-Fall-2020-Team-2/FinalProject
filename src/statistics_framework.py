@@ -53,18 +53,8 @@ def DrawHist(data_set, title, yLabel):
     plt.subplots_adjust(bottom=0.15)
     plt.show()
 
-def population_time(frame):
-    x = np.zeros(frame['ticks'][0])
-    y = np.zeros(frame['ticks'][0])
-    for i in range(x.size):
-        pass
-        
-
-
-
 def run_analysis():
     frame = read_data()
-    population_time(frame)
 
     if frame is not None:
         DrawHist(frame.loc[:, 'health'], "Health of Buddies", "Number of Buddies")
