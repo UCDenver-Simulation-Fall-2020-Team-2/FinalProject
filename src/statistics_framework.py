@@ -6,9 +6,9 @@ from os import path
 
 ABS_PATH = path.dirname(path.realpath(__file__))
 
-def read_data():
+def read_data(choosenFile):
     frame = None
-    read_path = path.join(ABS_PATH, 'stat_data', 'agent_data.csv')
+    read_path = path.join(ABS_PATH, 'stat_data', choosenFile)
     if path.exists(read_path):
         frame = pd.read_csv(read_path)
     return frame
@@ -118,7 +118,9 @@ def stats_time(frame):
     plt.show()
 
 def run_analysis():
-    frame = read_data()
+    frame = read_data('agent_data.csv')
+    herb_frame = read_data('herb_agent_data.csv')
+    carn_frame = read_data('carn_agent_data.csv')
     population_time(frame)
     stats_time(frame)
     
@@ -133,5 +135,24 @@ def run_analysis():
         DrawHist(frame.loc[:, 'intelligence'], "Buddy Intelligence", "Number of Buddies")
         DrawHist(frame.loc[:, 'strength'], "Buddy Strength", "Number of Buddies")
         DrawHist(frame.loc[:, 'fertility'], "Buddy Fetility", "Number of Buddies")
+        
+    if carn_frame is not None:
+       
+        DrawHist(carn_frame.loc[:, 'speed'], "Carnivore Speed", "Number of Carnivores")
+        DrawHist(carn_frame.loc[:, 'agility'], "Carnivore Agility", "Number of Carnivores")
+        DrawHist(carn_frame.loc[:, 'intelligence'], "Carnivore Intelligence", "Number of Carnivores")
+        DrawHist(carn_frame.loc[:, 'strength'], "Carnivore Strength", "Number of Carnivores")
+        DrawHist(carn_frame.loc[:, 'fertility'], "Carnivore Fetility", "Number of Carnivores")
+        DrawHist(carn_frame.loc[:, 'gene_stability'], "Carnivore Gene Stablitiy", "Number of Carnivores")
+        DrawHist(carn_frame.loc[:, 'bite_size'], "Carnivore Bite Size", "Number of Carnivores")
+        
+    if herb_frame is not None:
+        DrawHist(herb_frame.loc[:, 'speed'], "Herbivore Speed", "Number of Herbivores")
+        DrawHist(herb_frame.loc[:, 'agility'], "Herbivore Agility", "Number of Herbivores")
+        DrawHist(herb_frame.loc[:,'intelligence'], "Herbivore Intelligence", "Number of Herbivores")
+        DrawHist(herb_frame.loc[:, 'strength'], "Herbivore Strength", "Number of Herbivores")
+        DrawHist(herb_frame.loc[:, 'fertility'],"Herbivore Fertility", "Number of Herbivores")
+        DrawHist(herb_frame.loc[:, 'gene_stability'], "Herbivore Gene Stablitiy", "Number of Herbivores")
+        DrawHist(herb_frame.loc[:, 'bite_size'], "Herbivore Bite Size", "Number of Herbivores")
 
 run_analysis()

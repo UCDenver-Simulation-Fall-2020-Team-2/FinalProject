@@ -216,11 +216,43 @@ def writeSimData(game_manager):
         'gene_avg' : [], 'gene_cap' : [], 'gene_min' : [], 'gene_stability' : [], 'speed' : [], 'agility' : [], 
         'intelligence' : [], 'endurance' : [], 'strength' : [], 'fertility' : [], 'bite_size' : [], 'ticks' : GLOBAL_TICK
     }
+    carn_data_dict = {
+        'id' : [], 'gene_stability' : [], 'speed' : [], 'agility' : [], 
+        'intelligence' : [], 'endurance' : [], 'strength' : [], 'fertility' : [], 'bite_size' : []
+    }
+    herb_data_dict = {
+        'id' : [], 'gene_stability' : [], 'speed' : [], 'agility' : [], 
+        'intelligence' : [], 'endurance' : [], 'strength' : [], 'fertility' : [], 'bite_size' : []
+    }
 
     all_agents = game_manager.getAgents()
     dead_agents = game_manager.getDeadAgents()
     all_agents.extend(dead_agents)
+    for agent in all_agents:
     
+        
+        
+        if agent.type == ObjectType.EVIL :
+            carn_data_dict['id'].append(agent.id)
+            carn_data_dict['gene_stability'].append(agent.stats.stats['gene_stability'])
+            carn_data_dict['speed'].append(agent.stats.stats['speed'])
+            carn_data_dict['agility'].append(agent.stats.stats['agility'])
+            carn_data_dict['intelligence'].append(agent.stats.stats['intelligence'])
+            carn_data_dict['endurance'].append(agent.stats.stats['endurance'])
+            carn_data_dict['strength'].append(agent.stats.stats['strength'])
+            carn_data_dict['fertility'].append(agent.stats.stats['fertility'])
+            carn_data_dict['bite_size'].append(agent.stats.stats['bite_size'])
+        else:
+            herb_data_dict['id'].append(agent.id)
+            herb_data_dict['gene_stability'].append(agent.stats.stats['gene_stability'])
+            herb_data_dict['speed'].append(agent.stats.stats['speed'])
+            herb_data_dict['agility'].append(agent.stats.stats['agility'])
+            herb_data_dict['intelligence'].append(agent.stats.stats['intelligence'])
+            herb_data_dict['endurance'].append(agent.stats.stats['endurance'])
+            herb_data_dict['strength'].append(agent.stats.stats['strength'])
+            herb_data_dict['fertility'].append(agent.stats.stats['fertility'])
+            herb_data_dict['bite_size'].append(agent.stats.stats['bite_size'])
+             
     for agent in all_agents:
         # Attributes
         data_dict['id'].append(agent.id)
@@ -262,8 +294,13 @@ def writeSimData(game_manager):
         data_dict['bite_size'].append(agent.stats.stats['bite_size'])
 
     write_path = path.join(ABS_PATH, 'stat_data', 'agent_data.csv')
+    herb_write_path = path.join(ABS_PATH, 'stat_data', 'herb_agent_data.csv')
+    carn_write_path = path.join(ABS_PATH, 'stat_data', 'carn_agent_data.csv')
+
     os.makedirs(os.path.dirname(write_path), exist_ok=True)
     pd.DataFrame(data_dict).to_csv(write_path, index=False, mode="w+")
+    pd.DataFrame(herb_data_dict).to_csv(herb_write_path, index=False, mode="w+")
+    pd.DataFrame(carn_data_dict).to_csv(carn_write_path, index=False, mode="w+")
 
 def GameLoop():
     global ARR_GAME_STATES
