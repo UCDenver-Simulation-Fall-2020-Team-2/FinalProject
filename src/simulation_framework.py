@@ -233,7 +233,7 @@ class Plant(GameObject):
         return i
 
 class Agent(GameObject):
-    def __init__(self,x=None,y=None,raw_img_path=None,parent_1=None,parent_2=None,stats=None):
+    def __init__(self,x=None,y=None,raw_img_path=None,parent_1=None,parent_2=None,stats=None,birth_tick=0):
         global AGENT_ID
         self.sprite_path = path.join(ABS_PATH, "art_assets","agent_faces","neutral")
         if raw_img_path is None:
@@ -267,7 +267,10 @@ class Agent(GameObject):
         self.is_pregnant = False
         self.mating_cooldown = 0
         self.mating_cooldown_max = 5
-        
+        self.children = 0
+        self.birth_tick = birth_tick
+        self.death_tick = -1
+              
     def __setstate__(self, state):
         self.__dict__ = state
         self.calc_color()
@@ -365,7 +368,7 @@ class Agent(GameObject):
         if self.type == ObjectType.EVIL:
             blue = 255
         self.img.fill(pg.Color(255,0,blue,1),special_flags=pg.BLEND_MIN)
-        self.alive = 0
+        self.alive = False
 
     def select(self):
         self.selected = True
@@ -373,7 +376,9 @@ class Agent(GameObject):
     def calc_color(self):
         self.loadImg(self.img_path)
         red_color =  int(255-(255 * (self.health/MAX_HEALTH)))
-        if red_color < 0 or self.health < 0:
+        if self.health < 0 or red_color > 255:
+            red_color = 255
+        elif red_color < 0:
             red_color = 0
         
         self.img.fill(pg.Color(255,255-red_color,255-red_color,1),special_flags=pg.BLEND_MIN)
@@ -412,7 +417,7 @@ class Agent(GameObject):
                         mate.baby_stats = AgentStats(parent_1=self,parent_2=mate)
                         self.mating_cooldown = self.mating_cooldown_max
     
-    def give_birth(self,x,y):
+    def give_birth(self,x,y,g_tick):
         self.is_pregnant = False
         self.pregnant = -1
         self.last_pregnant_age = self.age
@@ -420,24 +425,27 @@ class Agent(GameObject):
         
         if (self.type != ObjectType.EVIL):
             if self.mate != None:
-                baby = Agent(x, y,stats=self.baby_stats)
+                baby = Agent(x, y,stats=self.baby_stats,birth_tick=g_tick)
             else:
-                baby = Agent(x, y,parent_1=self,parent_2=self)
+                baby = Agent(x, y,parent_1=self,parent_2=self,birth_tick=g_tick)
 
         else:
             if self.mate != None:
-                baby = EvilAgent(x, y,parent_1=self,parent_2=self.mate)
+                baby = EvilAgent(x, y,parent_1=self,parent_2=self.mate,birth_tick=g_tick)
             else:
-                baby = EvilAgent(x, y,parent_1=self,parent_2=self)
+                baby = EvilAgent(x, y,parent_1=self,parent_2=self,birth_tick=g_tick)
         
         self.mate = None
         self.baby_stats = None
         baby.energy = PREGNANCY_FOOD_GOAL
         self.deplete(PREGNANCY_FOOD_GOAL)
+        self.children += 1
+        if self.mate != None:
+            self.mate.children += 1
         return baby
 
 class EvilAgent(Agent):
-    def __init__(self,x=None,y=None,parent_1=None,parent_2=None):
+    def __init__(self,x=None,y=None,parent_1=None,parent_2=None,birth_tick=0):
         self.raw_img_path = None
         super().__init__(x,y,parent_1=parent_1,parent_2=parent_2)
         self.sprite_path = path.join(ABS_PATH, "art_assets","agent_faces","evil")
@@ -447,6 +455,7 @@ class EvilAgent(Agent):
         self.sense.type = ObjectType.EVIL
         self.max_energy = MAX_ENERGY * 2
         self.energy = self.max_energy
+        self.birth_tick = birth_tick
     
     def choose_movement(self):
         move = random.randint(0,8)
@@ -983,7 +992,9 @@ class GameManager:
     def __init__(self,width,height):
         self.grid = Grid(height, width)
         self.agents = []
+        self.dead_agents = []
         self.plants = []
+        self.global_tick = 0
         
         self.addAgent()
         self.font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 12)
@@ -1094,14 +1105,14 @@ class GameManager:
         game_window.blit(self.font.render(f"{stats3}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
 
         if simulation_runner_message is not None:
-            game_window.blit(self.font.render(simulation_runner_message, 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
+            game_window.blit(self.font.render(simulation_runner_message, 0, (255, 0, 0)), (self.grid.grid_padding, 20))
  
     def plantTick(self):
         for plant in self.plants:
             plant.tick()
 
     def agentTick(self,agent,move=None):
-        if agent.alive == 0:
+        if agent.alive == False:
             return
         agent.tick()
         if move == None:
@@ -1178,6 +1189,8 @@ class GameManager:
                                         candidate.select()
                                         break
                             target_agent.selected = False
+                            target_agent.death_tick = self.global_tick
+                            self.dead_agents.append(target_agent)
                             self.agents.remove(target_agent)
             
             for target_agent in self.agents:
@@ -1202,7 +1215,7 @@ class GameManager:
 
         if agent.alive and agent.is_pregnant and agent.pregnant >= sum(agent.baby_stats.stats.values()):
             baby_x, baby_y = self.grid.calcRandNearby(agent.x, agent.y, 1)
-            baby = agent.give_birth(baby_x, baby_y)
+            baby = agent.give_birth(baby_x, baby_y, self.global_tick)
             
             self.agents.append(baby)
             baby.sense.update(baby.x, baby.y, self.grid, self.agents,self.plants)
@@ -1210,34 +1223,48 @@ class GameManager:
                 print(f"{agent.id} has given birth to {baby.id}!")
         
         agent.sense.update(agent.x,agent.y,self.grid,self.agents,self.plants)
-        agent.age += 1
+        #agent.age += 1
 
 
-    def logicTick(self,player_move=None,draw_func=None):        
+    def logicTick(self,g_tick,player_move=None,draw_func=None):
+        self.global_tick = g_tick
         random.shuffle(self.plants)
         self.plantTick()
 
         #TODO Prove this won't skip anyone if someone is killed or is born
         run_ids = []
 
-        remaining_ids = []
-        for agent in self.agents:
-            remaining_ids.append(agent.id)
+        total_agent_ids = [agent.id for agent in self.agents if agent.alive]
 
-        while len(run_ids) < len(self.agents):
-            random.shuffle(self.agents)
-            for agent in self.agents:
-                if agent.id not in run_ids:
-                    rand = random.randint(0,10)
-                    if rand <= agent.stats.stats["agility"]:
-                        for i in range(agent.stats.getNumMoves()):
-                            self.agentTick(agent)
-                            if draw_func != None:
-                                draw_func()
-                        run_ids.append(agent.id)
-
+        tickable_agent = True
+        
+        try:
+            while (len(run_ids) < len(total_agent_ids) and tickable_agent):
+                tickable_agent = False
+                random.shuffle(self.agents)
+                for agent in self.agents:
+                    if ((agent.id not in run_ids) and agent.alive):
+                        tickable_agent = True
+                        rand = random.randint(0,10)
+                        if rand <= agent.stats.stats["agility"]:
+                            for i in range(agent.stats.getNumMoves()):
+                                self.agentTick(agent)
+                                if draw_func != None:
+                                    draw_func()
+                            agent.age += 1
+                            run_ids.append(agent.id)
+                            # Greedy approach to ensure complete enumeration of agents; quadratic complexity
+                            total_agent_ids.extend([curr_agent.id for curr_agent in self.agents if ((curr_agent.id not in total_agent_ids) and curr_agent.alive)])
+        except Exception as e:
+            traceback.print_exc()
+            print("ERROR IN LOGICTICK!")
+            sys.exit(9)
+                     
         # Returns the ID for bookkeeping from the simulation runner/driver program
-        return self.main_agent.id        
+        if self.main_agent:
+            return self.main_agent.id     
+        else:
+            return None
 
     def addPlant(self):
         x, y = self.grid.randEmptySpace()
@@ -1256,12 +1283,18 @@ class GameManager:
         agent = EvilAgent(x,y)
         self.agents.append(agent)
 
-    def setOccupiedGrid():
+    def setOccupiedGrid(self):
         self.grid.occupied_grid = np.zeros((GAME_GRID_WIDTH,GAME_GRID_HEIGHT))
         for plant in self.plants:
             self.grid.occupied_grid[plant.x][plant.y] = ObjectType.PLANT
         for agent in self.agents:
             self.grid.occupied_grid[agent.x][agent.y] = agent.type
+
+    def getAgents(self):
+        return self.agents
+
+    def getDeadAgents(self):
+        return self.dead_agents
 
 # All simple mouse does is pick a random direction, and moves there.
 # Quite senseless, if you ask me.
