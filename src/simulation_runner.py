@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 from simulation_framework import *
 from variable_config import *
 
@@ -151,6 +152,7 @@ def check_events():
     global FPS_SELECTION
     global FPS_LIST
     global SIMULATION_RUNNER_TERMINATING
+    global TURN_VIEW
     
     for event in pg.event.get():
         if event.type == pg.KEYDOWN:
@@ -259,7 +261,8 @@ def writeSimData(game_manager):
         data_dict['bite_size'].append(agent.stats.stats['bite_size'])
 
     write_path = path.join(ABS_PATH, 'stat_data', 'agent_data.csv')
-    pd.DataFrame(data_dict).to_csv(write_path, index=False)
+    os.makedirs(os.path.dirname(write_path), exist_ok=True)
+    pd.DataFrame(data_dict).to_csv(write_path, index=False, mode="w+")
 
 def GameLoop():
     global ARR_GAME_STATES

@@ -2,8 +2,8 @@ import pygame as pg
 from pygame import Color
 
 # Simulation FPS
-FPS_LIST = [1,2,5,10,60,100,150]
-FPS_SELECTION = 4 # Index corresponding to available option from FPS_LIST
+FPS_LIST = [1,2,5,10,60,100,150,1000]
+FPS_SELECTION = 7 # Index corresponding to available option from FPS_LIST
 DEFAULT_FPS_SELECTION = 4
 
 # Simulation Skip Frame Number
@@ -20,7 +20,7 @@ WINDOW_HEIGHT = 700
 
 # How many tiles should the grid have horizontally and vertically?
 # CURRENTLY ALL GRIDS MUST BE SQUARE
-GAME_GRID_WIDTH = 20
+GAME_GRID_WIDTH = 10
 GAME_GRID_HEIGHT = GAME_GRID_WIDTH
 
 # Total number of spaces 
@@ -110,4 +110,4 @@ selected_id = None
 clock = pg.time.Clock()
 delta_time = 0
 
-SKIP_SIGHT = True
+SKIP_SIGHT = False

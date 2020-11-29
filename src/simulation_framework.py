@@ -380,7 +380,9 @@ class Agent(GameObject):
     def calc_color(self):
         self.loadImg(self.img_path)
         red_color =  int(255-(255 * (self.health/MAX_HEALTH)))
-        if red_color < 0 or self.health < 0:
+        if self.health < 0 or red_color > 255:
+            red_color = 255
+        elif red_color < 0:
             red_color = 0
         
         self.img.fill(pg.Color(255,255-red_color,255-red_color,1),special_flags=pg.BLEND_MIN)
@@ -1108,7 +1110,7 @@ class GameManager:
         game_window.blit(self.font.render(f"{stats3}", 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
 
         if simulation_runner_message is not None:
-            game_window.blit(self.font.render(simulation_runner_message, 0, (255, 0, 0)), (self.grid.grid_padding, labels_y_start+120))
+            game_window.blit(self.font.render(simulation_runner_message, 0, (255, 0, 0)), (self.grid.grid_padding, 20))
  
     def plantTick(self):
         for plant in self.plants:
@@ -1241,28 +1243,40 @@ class GameManager:
         #TODO Prove this won't skip anyone if someone is killed or is born
         run_ids = []
 
-        remaining_ids = []
-        for agent in self.agents:
-            remaining_ids.append(agent.id)
+        total_agent_ids = [agent.id for agent in self.agents if agent.alive]
 
-        while len(run_ids) < len(self.agents):
-            random.shuffle(self.agents)
-            for agent in self.agents:
-                if agent.id not in run_ids:
-                    rand = random.randint(0,10)
-                    if rand <= agent.stats.stats["agility"]:
-                        for i in range(agent.stats.getNumMoves()):
-                            if g_tick != None:
-                                self.agentTick(agent, g_tick=g_tick)
-                            else:
-                                self.agentTick(agent)
-                            if draw_func != None:
-                                draw_func()
-                        agent.age += 1
-                        run_ids.append(agent.id)
-
+        tickable_agent = True
+        
+        try:
+            while (len(run_ids) < len(total_agent_ids) and tickable_agent):
+                tickable_agent = False
+                random.shuffle(self.agents)
+                for agent in self.agents:
+                    if ((agent.id not in run_ids) and agent.alive):
+                        tickable_agent = True
+                        rand = random.randint(0,10)
+                        if rand <= agent.stats.stats["agility"]:
+                            for i in range(agent.stats.getNumMoves()):
+                                if g_tick != None:
+                                    self.agentTick(agent, g_tick=g_tick)
+                                else:
+                                    self.agentTick(agent)
+                                if draw_func != None:
+                                    draw_func()
+                            agent.age += 1
+                            run_ids.append(agent.id)
+                            # Greedy approach to ensure complete enumeration of agents; quadratic complexity
+                            total_agent_ids.extend([curr_agent.id for curr_agent in self.agents if ((curr_agent.id not in total_agent_ids) and curr_agent.alive)])
+        except Exception as e:
+            traceback.print_exc()
+            print("ERROR IN LOGICTICK!")
+            exit(9)
+                     
         # Returns the ID for bookkeeping from the simulation runner/driver program
-        return self.main_agent.id        
+        if self.main_agent:
+            return self.main_agent.id     
+        else:
+            return None
 
     def addPlant(self):
         x, y = self.grid.randEmptySpace()
