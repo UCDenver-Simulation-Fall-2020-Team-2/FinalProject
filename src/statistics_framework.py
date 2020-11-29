@@ -74,7 +74,6 @@ def total_population_time(frame):
 
 def species_population_time(frame):
     x = np.zeros(frame['ticks'][0])
-    y_tot = np.zeros(frame['ticks'][0])
     y_evil = np.zeros(frame['ticks'][0])
     y_neutral = np.zeros(frame['ticks'][0])
     for i in range(x.size):
@@ -83,14 +82,12 @@ def species_population_time(frame):
             age = frame['age'][j]
             birth = frame['birth_tick'][j]
             # If alive at time tick
-            if birth <= i and age + birth+1 >= i: 
-                y_tot[i] += 1
+            if birth <= i and age + birth+1 >= i:
                 if frame['type'][j] == 'ObjectType.NEUTRAL':
                     y_neutral[i] += 1
                 else:
                     y_evil[i] += 1
     fig, ax = plt.subplots()
-    ax.plot(x, y_tot, label='Total')
     ax.plot(x, y_evil, label='Evil')
     ax.plot(x, y_neutral, label='Neutral')
     ax.grid()
@@ -275,12 +272,12 @@ def run_analysis():
     herb_frame = read_data('herb_agent_data.csv')
     carn_frame = read_data('carn_agent_data.csv')
     # total_population_time(frame)
-    # species_population_time(frame)
+    species_population_time(frame)
     # total_stats_time(frame)
     # species_stats_time(frame)
     #species_strength_intel_time(frame)
 
-    
+    """
     if frame is not None:
         DrawHist(frame.loc[:, 'health'], "Health of Buddies", "Number of Buddies")
         DrawHist(frame.loc[:, 'score'], "Buddy Scores", "Number of Buddies")
@@ -311,5 +308,5 @@ def run_analysis():
         DrawHist(herb_frame.loc[:, 'fertility'],"Herbivore Fertility", "Number of Herbivores")
         DrawHist(herb_frame.loc[:, 'gene_stability'], "Herbivore Gene Stablitiy", "Number of Herbivores")
         DrawHist(herb_frame.loc[:, 'bite_size'], "Herbivore Bite Size", "Number of Herbivores")
-
+    """
 run_analysis()
