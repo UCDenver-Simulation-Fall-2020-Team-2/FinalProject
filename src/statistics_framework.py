@@ -1,8 +1,8 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from simulation_framework import *
 from matplotlib.ticker import FormatStrFormatter
+from os import path
 
 ABS_PATH = path.dirname(path.realpath(__file__))
 
@@ -46,30 +46,19 @@ def DrawHist(data_set, title, yLabel):
     plt.subplots_adjust(bottom=0.15)
     plt.show()
 
+def read_data():
+    frame = None
+    read_path = path.join(ABS_PATH, 'stat_data', 'agent_data.csv')
+    if path.exists(read_path):
+        frame = pd.read_csv(read_path)
+    return frame
 
-read_path = path.join(ABS_PATH, 'stat_data', 'agent_data.p')
-if path.exists(read_path):
-    with open(read_path, 'rb') as read_file:
-        agents = pickle.load(read_file)
+def run_analysis():
+    frame = read_data()
 
-rnd_data = []
-food_eaten = []
-scores = []
-energy = []
+    if frame is not None:
+        DrawHist(frame.loc[:, 'health'], "Health of Buddies", "Number of Buddies")
+        DrawHist(frame.loc[:, 'score'], "Buddy Scores", "Number of Buddies")
+        DrawHist(frame.loc[:, 'energy'], "Remaining Buddy Energy", "Number of Buddies")
 
-i = 1
-while path.exists(path.join(ABS_PATH, 'stat_data', f'agent_stats_round{i}.csv')):
-    rnd_data.append(pd.read_csv(path.join(ABS_PATH, 'stat_data', f'agent_stats_round{i}.csv')))    
-    i += 1
-
-if i == 1:
-    print('No data.')
-else:
-    for data in rnd_data:
-        food_eaten.extend(data.loc[:, 'Food Eaten'])
-        scores.extend(data.loc[:, 'Score'])
-        energy.extend(data.loc[:, 'Energy'])
-
-    DrawHist(food_eaten, "Food Eaten by Buddies", "Number of Buddies")
-    DrawHist(scores, "Buddy Scores", "Number of Buddies")
-    DrawHist(energy, "Remaining Buddy Energy", "Number of Buddies")
+run_analysis()
