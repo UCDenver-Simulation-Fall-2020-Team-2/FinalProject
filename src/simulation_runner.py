@@ -21,15 +21,22 @@ GLOBAL_TICK = 0
 
 SAVE_STATES = True
 
-TURN_VIEW = True
+TURN_VIEW = False
 
 ABS_PATH = path.dirname(path.realpath(__file__))
 
 pg.init()
 game_manager = None
 
+game_window = pg.display.set_mode((RENDER_WIDTH, RENDER_HEIGHT))
+render_window = game_window.copy()
+
+game_window.fill(BACKGROUND_COLOR)
+render_window.fill(BACKGROUND_COLOR)
+
 game_window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 game_window.fill(BACKGROUND_COLOR)
+
 pg.display.set_caption('Simulation')
 
 run_game_loop = True
@@ -54,6 +61,7 @@ def incSkip():
 
 def globalDraw():
     global game_window
+    global render_window
     global game_manager
     global clock
     global SIMULATION_RUNNER_PAUSED
@@ -66,6 +74,8 @@ def globalDraw():
     check_events()
     
     game_window.fill(BACKGROUND_COLOR)
+    render_window.fill(BACKGROUND_COLOR)
+    
     selected_id = game_manager.selectByID(selected_id)
    
     simulation_runner_message = None
@@ -76,8 +86,9 @@ def globalDraw():
             simulation_runner_message = f"PAUSING (waiting on end of tick)..."
         else:
             simulation_runner_message = f"PAUSED"
-        
-    game_manager.draw(game_window,simulation_runner_message=simulation_runner_message)
+    
+    game_manager.draw(render_window,simulation_runner_message=simulation_runner_message)
+    game_window.blit(pg.transform.smoothscale(render_window, (WINDOW_WIDTH, WINDOW_HEIGHT)), (0, 0))
     pg.display.flip()
     
     diff = pg.time.get_ticks() - delta_time
@@ -86,7 +97,7 @@ def globalDraw():
         check_events()
         if SIMULATION_RUNNER_SIGNAL_REDRAW:
             SIMULATION_RUNNER_SIGNAL_REDRAW = False
-            game_window.fill(BACKGROUND_COLOR)
+            render_window.fill(BACKGROUND_COLOR)
             selected_id = game_manager.selectByID(selected_id)
             simulation_runner_message = None
             if SIMULATION_RUNNER_TERMINATING:
@@ -96,9 +107,10 @@ def globalDraw():
                     simulation_runner_message = f"PAUSING (waiting on end of tick)..."
                 else:
                     simulation_runner_message = f"PAUSED"
-            game_manager.draw(game_window,simulation_runner_message=simulation_runner_message)
+            game_manager.draw(render_window,simulation_runner_message=simulation_runner_message)
+            game_window.blit(pg.transform.smoothscale(render_window, (WINDOW_WIDTH, WINDOW_HEIGHT)), (0, 0))
             pg.display.flip()
-            
+
         diff = pg.time.get_ticks() - delta_time
         #print(f"Diff: {diff}")
         
@@ -132,7 +144,6 @@ def progressState():
 
 def rewindState():
     global ARR_GAME_STATES
-    global GLOBAL_TICK
     global GAME_STATE_INDEX
     global game_manager
     if SAVE_STATES:
@@ -200,7 +211,7 @@ def check_events():
         if event.type == pg.MOUSEBUTTONDOWN:
             #print("Received MBUTTONDOWN event!")
             mpos = pg.mouse.get_pos()
-            selected_id = game_manager.selectFromXY(mpos[0], mpos[1])
+            selected_id = game_manager.selectFromXY(mpos[0]*(RENDER_WIDTH/WINDOW_WIDTH), mpos[1]*(RENDER_HEIGHT/WINDOW_HEIGHT))
             SIMULATION_RUNNER_SIGNAL_REDRAW = True
 
 def writeSimData(game_manager):
@@ -274,7 +285,12 @@ def writeSimData(game_manager):
             if (not error_message_lock):
                 error_message_lock = True
                 print("ERROR: File currently open. Waiting for close...")
-                
+            game_window.fill(BACKGROUND_COLOR)
+            render_window.fill(BACKGROUND_COLOR)
+            game_manager.draw(render_window,simulation_runner_message=f"I/O lock: Close out of open stats file to finish!")
+            game_window.blit(pg.transform.smoothscale(render_window, (WINDOW_WIDTH, WINDOW_HEIGHT)), (0, 0))
+            pg.display.flip()
+            
 def GameLoop():
     global ARR_GAME_STATES
     global GLOBAL_TICK
