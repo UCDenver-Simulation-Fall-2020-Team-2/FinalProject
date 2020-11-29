@@ -63,6 +63,7 @@ def population_time(frame):
         for j in range(len(frame.index)):
             age = frame['age'][j]
             birth = frame['birth_tick'][j]
+            # If alive at time tick
             if birth <= i and age + birth+1 >= i: 
                 y_tot[i] += 1
                 if frame['type'][j] == 'ObjectType.NEUTRAL':
@@ -78,10 +79,49 @@ def population_time(frame):
     ax.legend()
     plt.show()
 
+def stats_time(frame):
+    x = np.zeros(frame['ticks'][0])
+    speed = np.zeros(frame['ticks'][0])
+    agility = np.zeros(frame['ticks'][0])
+    intelligence = np.zeros(frame['ticks'][0])
+    endurance = np.zeros(frame['ticks'][0])
+    strength = np.zeros(frame['ticks'][0])
+    fertility = np.zeros(frame['ticks'][0])
+    bite_size = np.zeros(frame['ticks'][0])
+
+    for i in range(x.size):
+        x[i] = i
+        for j in range(len(frame.index)):
+            age = frame['age'][j]
+            birth = frame['birth_tick'][j]
+            # If alive at time tick
+            if birth <= i and age + birth+1 >= i:
+                speed[i] += frame['speed'][j]
+                agility[i] += frame['agility'][j]
+                intelligence[i] += frame['intelligence'][j]
+                endurance[i] += frame['endurance'][j]
+                strength[i] += frame['strength'][j]
+                fertility[i] += frame['fertility'][j]
+                bite_size[i] += frame['bite_size'][j]
+    
+    fig, ax = plt.subplots()
+    ax.plot(x, speed, label='Speed')
+    ax.plot(x, agility, label='Agility')
+    ax.plot(x, intelligence, label='Intelligence')
+    ax.plot(x, endurance, label='Endurance')
+    ax.plot(x, strength, label='Strength')
+    ax.plot(x, fertility, label='Fertility')
+    ax.plot(x, bite_size, label='Bite Size')
+    ax.grid()
+    ax.set(xlabel='Time Ticks', ylabel='Stat Totals', title='Stats/Time')
+    ax.legend()
+    plt.show()
+
 def run_analysis():
     frame = read_data()
     population_time(frame)
-
+    stats_time(frame)
+    
     if frame is not None:
         DrawHist(frame.loc[:, 'health'], "Health of Buddies", "Number of Buddies")
         DrawHist(frame.loc[:, 'score'], "Buddy Scores", "Number of Buddies")
