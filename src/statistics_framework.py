@@ -70,5 +70,12 @@ def run_analysis():
         DrawHist(frame.loc[:, 'health'], "Health of Buddies", "Number of Buddies")
         DrawHist(frame.loc[:, 'score'], "Buddy Scores", "Number of Buddies")
         DrawHist(frame.loc[:, 'energy'], "Remaining Buddy Energy", "Number of Buddies")
+        DrawHist(frame.loc[:, 'age'], "Buddy Age", "Number of Buddies")
+        DrawHist(frame.loc[:, 'children'], "Number of Children", "Number of Buddies")
+        DrawHist(frame.loc[:, 'speed'], "Buddy Speed", "Number of Buddies")
+        DrawHist(frame.loc[:, 'agility'], "Buddy Agility", "Number of Buddies")
+        DrawHist(frame.loc[:, 'intelligence'], "Buddy Intelligence", "Number of Buddies")
+        DrawHist(frame.loc[:, 'strength'], "Buddy Strength", "Number of Buddies")
+        DrawHist(frame.loc[:, 'fertility'], "Buddy Fetility", "Number of Buddies")
 
 run_analysis()
