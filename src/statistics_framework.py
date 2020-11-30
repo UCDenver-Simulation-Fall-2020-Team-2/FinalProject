@@ -225,7 +225,7 @@ def species_stats_time(frame):
     ax.plot(x, neutral_fertility, 'y--', label='Average Herbivore Fertility')
     ax.plot(x, neutral_bite_size, 'k--', label='Average Herbivore Bite Size')
     ax.grid()
-    ax.legend()
+    ax.legend(loc="right", bbox_to_anchor=(1.6,.5))
     ax.set(xlabel='Time Ticks', ylabel='Average Species Stat Totals', title='Average Species Stats/Time')
     plt.show()
 
@@ -274,13 +274,13 @@ def run_analysis():
     frame = read_data('agent_data.csv')
     herb_frame = read_data('herb_agent_data.csv')
     carn_frame = read_data('carn_agent_data.csv')
-    # total_population_time(frame)
+    #total_population_time(frame)
     species_population_time(frame)
-    # total_stats_time(frame)
-    # species_stats_time(frame)
-    #species_strength_intel_time(frame)
+    total_stats_time(frame)
+    species_stats_time(frame)
+    species_strength_intel_time(frame)
 
-    """
+ 
     if frame is not None:
         DrawHist(frame.loc[:, 'health'], "Health of Buddies", "Number of Buddies")
         DrawHist(frame.loc[:, 'score'], "Buddy Scores", "Number of Buddies")
@@ -311,5 +311,5 @@ def run_analysis():
         DrawHist(herb_frame.loc[:, 'fertility'],"Herbivore Fertility", "Number of Herbivores")
         DrawHist(herb_frame.loc[:, 'gene_stability'], "Herbivore Gene Stablitiy", "Number of Herbivores")
         DrawHist(herb_frame.loc[:, 'bite_size'], "Herbivore Bite Size", "Number of Herbivores")
-    """
+        
 run_analysis()
