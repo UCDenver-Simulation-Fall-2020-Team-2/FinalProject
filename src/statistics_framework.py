@@ -307,7 +307,7 @@ def run_analysis():
         DrawHist(herb_frame.loc[:, 'speed'], "Herbivore Speed", "Number of Herbivores")
         DrawHist(herb_frame.loc[:, 'agility'], "Herbivore Agility", "Number of Herbivores")
         DrawHist(herb_frame.loc[:,'intelligence'], "Herbivore Intelligence", "Number of Herbivores")
-        DrawHist(herb_frame.loc[:, 'strength'], "Herbivore Strength", "Number of Herbivores")
+        DrawHist(herb_frame.loc[:, 'endurance'], "Herbivore Endurance", "Number of Herbivores")
         DrawHist(herb_frame.loc[:, 'fertility'],"Herbivore Fertility", "Number of Herbivores")
         DrawHist(herb_frame.loc[:, 'gene_stability'], "Herbivore Gene Stablitiy", "Number of Herbivores")
         DrawHist(herb_frame.loc[:, 'bite_size'], "Herbivore Bite Size", "Number of Herbivores")
