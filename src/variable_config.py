@@ -7,7 +7,7 @@ from pygame.locals import *
 #--------------------------------------------------------
 # Simulation FPS
 FPS_LIST = [1,2,5,10,25,60,100,150,1000]
-FPS_SELECTION = 5 # Index corresponding to available option from FPS_LIST
+FPS_SELECTION = 8 # Index corresponding to available option from FPS_LIST
 DEFAULT_FPS_SELECTION = 4
 
 # Simulation Skip Frame Number
@@ -83,7 +83,7 @@ MAX_GAME_STATES = 200
 SAVE_STATES = True
 
 # Render each agent's turn instead of the collective tick
-TURN_VIEW = True
+TURN_VIEW = False
 
 # Maximum number of game states that can be saved per round
 MAX_SAVED_GAME_STATES = MAX_ENERGY

@@ -1268,12 +1268,11 @@ class GameManager:
         tickable_agent = True
         
         try:
-            while (len(run_ids) < len(total_agent_ids) and tickable_agent):
+            while ((len(run_ids) < len(total_agent_ids)) and tickable_agent):
                 tickable_agent = False
                 random.shuffle(self.agents)
                 for agent in self.agents:
                     if ((agent.id not in run_ids) and agent.alive):
-                        tickable_agent = True
                         rand = random.randint(0,10)
                         if rand <= agent.stats.stats["agility"]:
                             for i in range(agent.stats.getNumMoves()):
@@ -1283,9 +1282,13 @@ class GameManager:
                             agent.age += 1
                             run_ids.append(agent.id)
                             # Greedy approach to ensure complete enumeration of agents; quadratic complexity
-                            total_agent_ids.extend([curr_agent.id for curr_agent in self.agents if ((curr_agent.id not in total_agent_ids) and curr_agent.alive)])
-                            if ((not agent.alive) and (tick_num is not None)):
+                            new_agents = [curr_agent.id for curr_agent in self.agents if ((curr_agent.id not in total_agent_ids) and curr_agent.alive)]
+                            if (agent.alive or len(new_agents) > 0):
+                                tickable_agent = True
+                            elif ((not agent.alive) and (tick_num is not None)):
                                 agent.death_tick = tick_num
+                            total_agent_ids.extend(new_agents)
+
         except Exception as e:
             traceback.print_exc()
             print("ERROR IN LOGICTICK!")
