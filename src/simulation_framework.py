@@ -741,20 +741,12 @@ class AgentStats:
             self.subFromRandGene(amount_to_mod)
 
     def addToRandGene(self,amount):
-        assigned = False
-        while not assigned:
-            key = random.choice(list(self.stats.keys()))
-            if self.stats[key] < self.gene_cap:
-                self.stats[key] += amount
-                assigned = True
+        key = random.choice(list(self.stats.keys()))
+        self.stats[key] += amount
 
     def subFromRandGene(self,amount):
-        assigned = False
-        while not assigned:
-            key = random.choice(list(self.stats.keys()))
-            if self.stats[key] - amount >= self.gene_min:
-                self.stats[key] -= 1
-                assigned = True
+        key = random.choice(list(self.stats.keys()))
+        self.stats[key] -= amount
 
     def cleanGenes(self):
         for key in self.stats:
@@ -775,12 +767,9 @@ class AgentStats:
 
     def scramble_genetics(self):
         for i in range(self.gene_limit - len(self.stats)):
-            assigned = False
-            while not assigned:
-                key = random.choice(list(self.stats.keys()))
-                if self.stats[key] < self.gene_cap:
-                    self.stats[key] += 1
-                    assigned = True
+            key = random.choice(list(self.stats.keys()))
+            self.stats[key] += 1
+
 class Grid:
     def __init__(self,width,height):
         self.width = width
