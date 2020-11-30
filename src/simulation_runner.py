@@ -347,8 +347,7 @@ def GameLoop():
     writeSimData(ARR_GAME_STATES[-1][1].restore())
     
     print("Simulation ending. Goodbye!")
-    pg.display.quit()
-    pg.quit()
     
 GameLoop()
-sys.exit()
+pg.quit()
+sys.exit(0)

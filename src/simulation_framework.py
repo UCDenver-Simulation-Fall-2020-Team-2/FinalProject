@@ -485,9 +485,7 @@ class EvilAgent(Agent):
 class AgentSense:
     def __init__(self):
         self.sm_font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 11)
-        self.sight_senses = []
-        self.smell_senses = []
-        
+
         self.sight_dist_from_agent = 2
         self.smell_dist_from_agent = 1
 
@@ -555,28 +553,28 @@ class AgentSense:
             self.smell_rects.append(smell_rect)
     
     def reset_sight(self):
+        self.sight_senses = []
         self.elevation_sight = np.zeros((self.sight_range,self.sight_range))
         self.food_sight = np.zeros((self.sight_range,self.sight_range))
         self.creature_sight = np.zeros((self.sight_range,self.sight_range))
         self.danger_sight = np.zeros((self.sight_range,self.sight_range))
-
+        self.apply_sight_to_array()
+        
     def apply_sight_to_array(self):
-        self.sight_senses = []
-
         self.sight_senses.append(self.elevation_sight)
         self.sight_senses.append(self.food_sight)
         self.sight_senses.append(self.creature_sight)
         self.sight_senses.append(self.danger_sight)
 
-    def apply_smell_to_array(self):
-        self.smell_senses = []
-
-        self.smell_senses.append(self.food_smell)
-        self.smell_senses.append(self.creature_smell)
-
     def reset_smell(self):
+        self.smell_senses = []
         self.food_smell = np.zeros((self.smell_range,self.smell_range))
         self.creature_smell = np.zeros((self.smell_range,self.smell_range))
+        self.apply_smell_to_array()
+    
+    def apply_smell_to_array(self):
+        self.smell_senses.append(self.food_smell)
+        self.smell_senses.append(self.creature_smell)
         
     def draw(self, surface):
 
