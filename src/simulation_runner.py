@@ -3,25 +3,11 @@ import os
 from simulation_framework import *
 from variable_config import *
 
-# Used to determine how many frames are skipped.
-# Helps when you want the gamelogic to move faster than
-# Your system can draw it.
-SKIP_FRAMES = 0
-
-# Number of frames to draw per second.
-# FRAMES_PER_SECOND = 0
-
-MAX_GAME_STATES = 200
-
 ARR_GAME_STATES = []
 
 GAME_STATE_INDEX = -1 # Needs to execute one logic tick to create a legitimate game state for the initial GameManager
 
 GLOBAL_TICK = 0
-
-SAVE_STATES = True
-
-TURN_VIEW = False
 
 ABS_PATH = path.dirname(path.realpath(__file__))
 
