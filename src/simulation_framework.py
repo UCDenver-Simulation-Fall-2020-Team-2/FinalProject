@@ -414,6 +414,8 @@ class Agent(GameObject):
             self.sense.draw(surface)
 
     def attempt_mate(self,mate):
+        global VERBOSE
+        
         if self.age >= AGE_OF_CONSENT and self.pregnant == -1 and self.mating_cooldown <= 0:
             if mate.id != self.id and mate.type == self.type and mate.is_pregnant == False and mate.alive and mate.age >= AGE_OF_CONSENT:
                 #if (target_agent.age - target_agent.last_pregnant_age >= PREGNANCY_COOLDOWN):
@@ -1133,6 +1135,9 @@ class GameManager:
 
     def agentTick(self,agent,move=None):
         global HANDLED_TICK
+        global EAT_PLANT_INSTANT
+        global VERBOSE
+        
         if agent.alive == False:
             return
         

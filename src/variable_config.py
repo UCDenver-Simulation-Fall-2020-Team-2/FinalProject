@@ -7,7 +7,7 @@ from pygame.locals import *
 #--------------------------------------------------------
 # Simulation FPS
 FPS_LIST = [1,2,5,10,25,60,100,150,1000]
-FPS_SELECTION = 8 # Index corresponding to available option from FPS_LIST
+FPS_SELECTION = 4 # Index corresponding to available option from FPS_LIST
 DEFAULT_FPS_SELECTION = 4
 
 # Simulation Skip Frame Number
@@ -17,10 +17,6 @@ DEFAULT_SKIP_SELECTION = 4
 
 # Selects a new agent automatically if the currently selected agent is removed from the simulation
 SIMULATION_RUNNER_ALWAYS_HAVE_SELECTED_AGENT = True
-
-# Render width and height
-RENDER_WIDTH = 500
-RENDER_HEIGHT = 700
 
 # Window width and height
 WINDOW_WIDTH = 1000
@@ -34,24 +30,14 @@ GAME_GRID_HEIGHT = GAME_GRID_WIDTH
 # Total number of spaces 
 NUM_SPACES = GAME_GRID_WIDTH * GAME_GRID_HEIGHT
 
-# Not currently used.
-SMELL_PROPAGATION_DISTANCE = GAME_GRID_WIDTH
-
 # How much energy is spent moving from tile to tile
 DEFAULT_TERRAIN_DIFFICULTY = 1
-
-# Should food smell stack, or take the greatest value?
-# Glitches can occur if this is turned off
-SCENT_STACKING = True
-
-# Does a round's score go down to zero if the player dies?
-DEATH_PENALTY = True
 
 # Self explanatory
 BACKGROUND_COLOR = Color("#505050")
 PAUSED_BACKGROUND_COLOR = Color("#303030")
 NUM_AGENTS = 20
-NUM_EVIL = 5
+NUM_EVIL = 7
 SMELL_DIST = 10
 
 # What is the maximum amount of energy that a player can have?
@@ -93,7 +79,7 @@ MAX_SAVED_GAME_STATES = MAX_ENERGY
 # agent will make a good choice less often
 DEFAULT_INTELLIGENCE = 0.2
 
-# Same as above, fut only applies to evil agents
+# Same as DEFAULT_INTELLIGENCE, but only applies to evil agents
 DEFAULT_EVIL_INTELLIGENCE = 0.5
 
 # Indicates whether or not it takes time to consume a plant
@@ -110,11 +96,19 @@ PREGNANCY_COOLDOWN = 100
 
 # Logging verbosity via STDOUT/STDERR
 VERBOSE = True
+
+# Not currently used.
+SMELL_PROPAGATION_DISTANCE = GAME_GRID_WIDTH
 #--------------------------------------------------------
 
 #--------------------------------------------------------
 # UNMODIFIABLE (simulation predicated upon these initial values to work)
 #--------------------------------------------------------
+
+# Render width and height
+RENDER_WIDTH = 500
+RENDER_HEIGHT = 700
+
 SQUARE_SIZE = int(RENDER_WIDTH/GAME_GRID_WIDTH*0.8)
 
 if MAX_NUM_FOOD_ON_GRID <= 1:
