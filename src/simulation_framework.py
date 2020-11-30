@@ -485,7 +485,9 @@ class EvilAgent(Agent):
 class AgentSense:
     def __init__(self):
         self.sm_font = Font(path.join(ABS_PATH,"Retron2000.ttf"), 11)
-
+        self.sight_senses = []
+        self.smell_senses = []
+        
         self.sight_dist_from_agent = 2
         self.smell_dist_from_agent = 1
 
@@ -720,7 +722,7 @@ class AgentStats:
         self.cleanGenes()
         self.shiftToCap()
         self.cleanGenes() # In case shiftToCap causes all genes to fall below gene_min
-        print(self.stats)
+        #print(self.stats)
 
     def getNumMoves(self):
         speed = self.stats["speed"]
@@ -766,7 +768,7 @@ class AgentStats:
                 self.stats[key] -= 1/len(self.stats)
             total = sum(self.stats.values())
                     
-        print(f"TOTAL:{total}")
+        #print(f"TOTAL:{total}")
 
     def scramble_genetics(self):
         for i in range(self.gene_limit - len(self.stats)):
@@ -837,6 +839,7 @@ class Grid:
 
     def calcHeightMap(self):
         self.elevation_map = np.random.randint(0,high=250, size=(GAME_GRID_WIDTH,GAME_GRID_HEIGHT))
+        
         img_path = path.join(ABS_PATH,"height.png")
         img = Image.fromarray(self.elevation_map).convert('L').filter(ImageFilter.GaussianBlur(1))
         img.save(img_path)
@@ -849,6 +852,8 @@ class Grid:
                 val = np.interp(self.elevation_map[x][y],[arr_min,arr_max],[20,255])
                 self.elevation_map[x,y] = val
 
+        #print(self.elevation_map)
+        
         img = Image.fromarray(self.elevation_map).convert('L')
         img.save(img_path)
         

@@ -351,3 +351,4 @@ def GameLoop():
     pg.quit()
     
 GameLoop()
+sys.exit()
