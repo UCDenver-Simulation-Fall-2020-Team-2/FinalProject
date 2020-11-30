@@ -719,6 +719,7 @@ class AgentStats:
 
         self.cleanGenes()
         self.shiftToCap()
+        self.cleanGenes() # In case shiftToCap causes all genes to fall below gene_min
         print(self.stats)
 
     def getNumMoves(self):
